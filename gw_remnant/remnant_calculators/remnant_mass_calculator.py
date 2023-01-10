@@ -1,3 +1,17 @@
+#############################################################################
+##
+##      Filename: remnant_mass_calculator.py
+##
+##      Author: Tousif Islam
+##
+##      Created: 01-05-2023
+##
+##      Description: Estimates mass of the final black hole in a BBH merger
+##
+##      Modified:
+##
+#############################################################################
+
 import numpy as np
 import scipy.integrate as integrate
 from scipy import signal

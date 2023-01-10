@@ -1,3 +1,17 @@
+#############################################################################
+##
+##      Filename: peak_luminosity_calculator.py
+##
+##      Author: Tousif Islam
+##
+##      Created: 01-05-2023
+##
+##      Description: Estimates peak GW luminosity of a BBH merger
+##
+##      Modified:
+##
+#############################################################################
+
 import numpy as np
 from .remnant_mass_calculator import RemnantMassCalculator
 from scipy.interpolate import InterpolatedUnivariateSpline as spline
@@ -37,12 +51,14 @@ class PeakLuminosityCalculator(RemnantMassCalculator):
         computes the peak luminosity;
         Eq(1) of https://arxiv.org/pdf/2010.00120.pdf
         """
+        # find the max value of the discrete series
         discrete_peak_index = np.argmax(self.E_dot)
+        # use 10 points in each side of the max point
         indx_begin = discrete_peak_index - 10
         indx_end = discrete_peak_index + 10
         time_cut = self.time[indx_begin:indx_end]
         L_cut = self.E_dot[indx_begin:indx_end]
-        #L_peak = self._get_peak_via_quadratic_fit(time_cut, L_cut)[1]
+        # find the continuous peak using spline fit
         L_peak = self._get_peaks_via_spline_fit(time_cut, L_cut)[1]
         return L_peak
         

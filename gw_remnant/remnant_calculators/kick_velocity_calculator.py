@@ -1,3 +1,17 @@
+#############################################################################
+##
+##      Filename: kick_velocity_calculator.py
+##
+##      Author: Tousif Islam
+##
+##      Created: 01-05-2023
+##
+##      Description: Estimates kick velocity of a BBH merger
+##
+##      Modified:
+##
+#############################################################################
+
 import numpy as np
 import scipy.integrate as integrate
 from .remnant_mass_calculator import RemnantMassCalculator
