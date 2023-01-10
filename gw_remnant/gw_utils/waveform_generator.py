@@ -1,3 +1,17 @@
+#############################################################################
+##
+##      Filename: waveform_generator.py
+##
+##      Author: Tousif Islam
+##
+##      Created: 01-05-2023
+##
+##      Description: Generates surrogate waveforms and surrogate remnant properties
+##
+##      Modified:
+##
+#############################################################################
+
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as spline
 

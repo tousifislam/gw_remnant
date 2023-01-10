@@ -1,3 +1,17 @@
+#############################################################################
+##
+##      Filename: gw_plotter.py
+##
+##      Author: Tousif Islam
+##
+##      Created: 01-05-2023
+##
+##      Description: Makes quick plots for energy and momenta profiles
+##
+##      Modified:
+##
+#############################################################################
+
 import numpy as np
 
 from gw_remnant.remnant_calculators.peak_luminosity_calculator import PeakLuminosityCalculator
