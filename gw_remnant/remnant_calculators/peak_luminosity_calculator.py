@@ -1,6 +1,6 @@
 import numpy as np
 from .remnant_mass_calculator import RemnantMassCalculator
-
+from scipy.interpolate import InterpolatedUnivariateSpline as spline
 
 class PeakLuminosityCalculator(RemnantMassCalculator):
     """
@@ -11,8 +11,8 @@ class PeakLuminosityCalculator(RemnantMassCalculator):
         
         super().__init__(time, hdict, qinput, M_initial, use_filter)
         self.L_peak = self._compute_peak_luminosity()
-        
-    def _get_peak_via_quadratic_fit(self, t, func):
+    
+    def _get_peaks_via_spline_fit(self, t, func):
         """
         Finds the peak time of a function quadratically
         Fits the function to a quadratic over the 5 points closest to the argmax func.
@@ -20,26 +20,30 @@ class PeakLuminosityCalculator(RemnantMassCalculator):
         func : array of function values
         Returns: tpeak, fpeak
         """
-        # Find the time closest to the peak, making sure we have room on either side
-        index = np.argmax(func)
-        index = max(2, min(len(t) - 3, index))
-        # Do a quadratic fit to 5 points,
-        # subtracting t[index] to make the matrix inversion nice
-        testTimes = t[index-2:index+3] - t[index]
-        testFuncs = func[index-2:index+3]
-        xVecs = np.array([np.ones(5),testTimes,testTimes**2.])
-        invMat = np.linalg.inv(np.array([[v1.dot(v2) for v1 in xVecs] \
-            for v2 in xVecs]))
-        yVec = np.array([testFuncs.dot(v1) for v1 in xVecs])
-        coefs = np.array([yVec.dot(v1) for v1 in invMat])
-        return t[index] - coefs[1]/(2.*coefs[2]), coefs[0] - coefs[1]**2./4/coefs[2]
+        # Use a 4th degree spline for interpolation, so that the roots of its derivative can be found easily.
+        spl = spline(t, func, k=4)
+        # find the critical points
+        cr_pts = spl.derivative().roots()
+        # also check the endpoints of the interval
+        cr_pts = np.append(cr_pts, (t[0], func[-1]))  
+        # critial values
+        cr_vals = spl(cr_pts)
+        # we only care about the maximas
+        max_index = np.argmax(cr_vals)
+        return cr_pts[max_index], cr_vals[max_index]
     
     def _compute_peak_luminosity(self):
         """
         computes the peak luminosity;
         Eq(1) of https://arxiv.org/pdf/2010.00120.pdf
         """
-        L_peak = self._get_peak_via_quadratic_fit(self.time, self.E_dot)[1]
+        discrete_peak_index = np.argmax(self.E_dot)
+        indx_begin = discrete_peak_index - 10
+        indx_end = discrete_peak_index + 10
+        time_cut = self.time[indx_begin:indx_end]
+        L_cut = self.E_dot[indx_begin:indx_end]
+        #L_peak = self._get_peak_via_quadratic_fit(time_cut, L_cut)[1]
+        L_peak = self._get_peaks_via_spline_fit(time_cut, L_cut)[1]
         return L_peak
         
 

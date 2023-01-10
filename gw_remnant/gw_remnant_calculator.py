@@ -18,9 +18,9 @@ class GWWaveformGenerator(WaveformGenerator):
         (i) NRHybSur3dq8Remnant;
     """
     def __init__(self, mass_ratio, modes=None, common_times=None, f_low=None, 
-                get_NRSur=True, get_SEOB=True, get_BHPT=True):
+                get_NRSur=True, get_BHPT=True):
         super().__init__(mass_ratio, modes, common_times, f_low, 
-                         get_NRSur, get_SEOB, get_BHPT)
+                         get_NRSur, get_BHPT)
         
 
 class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCalculator,

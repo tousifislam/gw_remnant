@@ -26,13 +26,12 @@ class WaveformGenerator():
     At this moment, the class supports three models:
         (i) BHPTNRSur1dq1e4;
         (ii) NRHybSur3dq8;
-        (iii) SEOBNRv4HM;
     It further computes the remnant quantities using the following remnant
     surrogates:
         (i) NRHybSur3dq8Remnant;
     """
     def __init__(self, mass_ratio, modes=None, common_times=None, f_low=None, 
-                 get_NRSur=True, get_SEOB=True, get_BHPT=True):
+                 get_NRSur=True, get_BHPT=True):
         
         # mass ratio
         self.qinput = mass_ratio
@@ -56,10 +55,8 @@ class WaveformGenerator():
             self.modes = modes
             
         # generate waveforms
-        if get_NRSur:#self.qinput<=10:
+        if get_NRSur:
             self.hnr = self._generate_nrsur()
-        if get_SEOB:#self.qinput<=99:
-            self.hseob = self._generate_SEOBNRv4HM()
         if get_BHPT:
             self.hbhpt = self._generate_bhptsur()
         print('final common time grid : [%.2f,%.2f]'%(self.common_times[0],self.common_times[-1]))
@@ -92,7 +89,6 @@ class WaveformGenerator():
             h_out[(mode[0],-mode[-1])] = ((-1)**mode[0]) * np.conjugate(h_out[mode])
         return h_out
     
-    
     def _generate_bhptsur(self):
         """
         generate BHPTNRSur1dq1e4 waveform
@@ -116,77 +112,8 @@ class WaveformGenerator():
         # All of these together
         mf, chif, vf, mf_err, chif_err, vf_err = fit.all(self.qinput, chiA, chiB)
         return mf, mf_err, np.linalg.norm(vf), np.linalg.norm(vf_err)
-    
-    
-    def _SEOBNRv4HM(self, q, chi1z, chi2z, deltaTOverM, omega0):
-        """ 
-        base function to generate waveform for 'SEOBNRv4HM' using LALSuite.
-        Returns dimless time and dict containing dimless complex strain of all
-        available modes.
-        """
-        
-        ## use M=10 and distance=1 Mpc, but will scale these out before outputting h
-        M = 10      # dimless mass
-        distance = 1.0e6 * PC_SI
 
-        MT = M*MTSUN_SI
-        f_low = omega0/np.pi/MT
-        f_ref = f_low
-
-        # component masses of the binary
-        m1_kg =  M*MSUN_SI*q/(1.+q)
-        m2_kg =  M*MSUN_SI/(1.+q)
-
-        nqcCoeffsInput=lal.CreateREAL8Vector(10)
-
-        sphtseries, dyn, dynHI = lalsim.SimIMRSpinAlignedEOBModes( \
-            deltaTOverM * MT, m1_kg, m2_kg, f_low, distance, chi1z, chi2z, 41, \
-            0., 0., 0., 0., 0., 0., 0., 0., 1., 1., nqcCoeffsInput, 0)
-
-        h_dict = {}
-        type_struct = type(sphtseries)
-        while type(sphtseries) is type_struct:
-            l = sphtseries.l
-            m = sphtseries.m
-            hlm = sphtseries.mode.data.data
-            hlm *= distance/MT/C_SI              # rescale to rhOverM
-            h_dict['h_l%dm%d'%(l,m)] = hlm
-            # go to the next mode because stupid EOBNR
-            sphtseries = sphtseries.next
-
-        ##HACK HACK HACK     #FIXME FIXME
-        ## SEOBNRv4HM has a different tetrad convention (to be fixed soon
-        # apparently), that shows up as a minus sign for all modes
-        for key in h_dict:
-            h_dict[key] *= -1
-
-        t = deltaTOverM *np.arange(len(h_dict['h_l2m2']))      # dimensionless time
-        return t, h_dict
-
-
-    def _generate_SEOBNRv4HM(self):
-        """
-        wrapper to generate SEOB waveform
-        """
-        # generate SEOB waveform
-        t, h = self._SEOBNRv4HM(q=self.qinput, chi1z=0.0, chi2z=0.0, deltaTOverM=0.1, omega0=1.5e-2)
-        # make sure t=0 is the peak of 22 amplitude
-        t_peak = self._peak_time(t, h['h_l2m2'])
-        t = t - t_peak
-        
-        print('SEOB original time grid : [%.2f,%.2f]'%(t[0],t[-1]))
-        # name modes according to our needs
-        hSEOB={}
-        # have dictionary keys as (l,m)
-        for mode in h.keys():
-            # cast waveforms in the common time grid
-            hSEOB[(int(mode[3]),int(mode[5]))] = gwtools.gwtools.interpolate_h(t, h[mode], self.common_times)
-            # get negative m modes
-            hSEOB[(int(mode[3]),-int(mode[5]))] = ((-1)**int(mode[3])) * np.conjugate(hSEOB[(int(mode[3]),int(mode[5]))])
-        return hSEOB
-
-
-    def _get_peak_via_quadratic_fit(self, t, func):
+    def _get_peaks_via_spline_fit(self, t, func):
         """
         Finds the peak time of a function quadratically
         Fits the function to a quadratic over the 5 points closest to the argmax func.
@@ -194,26 +121,21 @@ class WaveformGenerator():
         func : array of function values
         Returns: tpeak, fpeak
         """
+        # Use a 4th degree spline for interpolation, so that the roots of its derivative can be found easily.
+        spl = spline(t, func, k=4)
+        # find the critical points
+        cr_pts = spl.derivative().roots()
+        # also check the endpoints of the interval
+        cr_pts = np.append(cr_pts, (t[0], func[-1]))  
+        # critial values
+        cr_vals = spl(cr_pts)
+        # we only care about the maximas
+        max_index = np.argmax(cr_vals)
+        return cr_pts[max_index], cr_vals[max_index]
 
-        # Find the time closest to the peak, making sure we have room on either side
-        index = np.argmax(func)
-        index = max(2, min(len(t) - 3, index))
-
-        # Do a quadratic fit to 5 points,
-        # subtracting t[index] to make the matrix inversion nice
-        testTimes = t[index-2:index+3] - t[index]
-        testFuncs = func[index-2:index+3]
-        xVecs = np.array([np.ones(5),testTimes,testTimes**2.])
-        invMat = np.linalg.inv(np.array([[v1.dot(v2) for v1 in xVecs] \
-            for v2 in xVecs]))
-
-        yVec = np.array([testFuncs.dot(v1) for v1 in xVecs])
-        coefs = np.array([yVec.dot(v1) for v1 in invMat])
-        return t[index] - coefs[1]/(2.*coefs[2]), coefs[0] - coefs[1]**2./4/coefs[2]
-    
     def _peak_time(self, t, modes):
         """
-        wrapper to find the peak time quadratically, using 22 mode of the waveform
+        wrapper to find the peak time using 4th order spline, using 22 mode of the waveform
         """
         normSqrVsT = abs(modes)**2
-        return self._get_peak_via_quadratic_fit(t, normSqrVsT)[0]
+        return self._get_peaks_via_spline_fit(t, normSqrVsT)[0]
