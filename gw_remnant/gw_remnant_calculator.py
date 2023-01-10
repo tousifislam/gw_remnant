@@ -1,3 +1,19 @@
+#############################################################################
+##
+##      Filename: gw_remnant_calculator.py
+##
+##      Author: Tousif Islam
+##
+##      Created: 01-05-2023
+##
+##      Description: Estimates energy and momenta profiles of a BBH merger and 
+##                   calculates the properties of the final black hole in a 
+##                   BBH merger
+##
+##      Modified:
+##
+#############################################################################
+
 from .gw_utils.waveform_generator import WaveformGenerator
 from .remnant_calculators.peak_luminosity_calculator import PeakLuminosityCalculator
 from .remnant_calculators.kick_velocity_calculator import LinearMomentumCalculator
