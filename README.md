@@ -22,8 +22,8 @@ If you make use of the BHPTNRSur models please cite the following paper:
 ```
 @article{Islam:2022laz,
     author = "Islam, Tousif and Field, Scott E. and Khanna, Gaurav.",
-    title = "{Remnant properties of the binary-black-holes mergers from numerical-relativity informed black-hole-perturbation theory}",
-    eprint = "-",
+    title = "{Remnant black hole properties from numerical-relativity-informed perturbation theory and implications for waveform modelling}",
+    eprint = "https://arxiv.org/abs/2301.07215",
     archivePrefix = "arXiv",
     primaryClass = "gr-qc",
     month = "1",
