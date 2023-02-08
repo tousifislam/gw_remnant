@@ -12,8 +12,7 @@
 ##
 #############################################################################
 
-#from .gw_utils.waveform_generator import WaveformGenerator
-from .gw_utils.waveform import WaveformGenerator
+from .gw_utils.waveform_generator import WaveformGenerator
 
 class GWWaveformGenerator(WaveformGenerator):
     """
