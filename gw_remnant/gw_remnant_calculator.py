@@ -19,7 +19,6 @@ from .remnant_calculators.kick_velocity_calculator import LinearMomentumCalculat
 from .remnant_calculators.remnant_mass_calculator import RemnantMassCalculator
 from .remnant_calculators.remnant_spin_calculator import AngularMomentumCalculator
 from .gw_utils.gw_plotter import GWPlotter
-        
 
 class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCalculator,
                           LinearMomentumCalculator, RemnantMassCalculator):
@@ -40,6 +39,7 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
         (xiii) spinoft : spin as a function of time
         (xiv) remnant_spin : spin of the remnant black hole
         (xv) L_peak : peak luminosity of the binary black hole merger
+        (xvi) peak_kick : peak kick velocity
         
     It also provides methods to print quantities of interests and to plot time evolution
     of mass, energy, momentum and kick;
