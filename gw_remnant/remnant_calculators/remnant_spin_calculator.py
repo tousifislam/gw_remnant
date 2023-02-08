@@ -92,18 +92,20 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator)
     
     def _compute_initial_angular_momentum(self):
         """
-        Computes initial angular momentum L_orb using https://arxiv.org/pdf/1110.2965.pdf;
-        Post-Newtonian calculation at 1PN order
+        Computes initial angular momentum L_orb using Eq(2.36) https://arxiv.org/pdf/1111.5378.pdf;
+        Post-Newtonian calculation at 3PN order
         """
         orb_phase = 0.5 * gwtools.phase(self.hdict[(2,2)])
         orb_frequency = abs(np.gradient(orb_phase,edge_order=2)/np.gradient(self.time,edge_order=2))
+        x = orb_frequency[0]**(2/3)
         nu = gwtools.q_to_nu(self.qinput)
-        v = orb_frequency**(1/3)
-        LMag_newtonian = nu/v
-        PN1 = (1 + 1.5 + nu/6.0)
-        LMag = LMag_newtonian*(1.0 + v*v*PN1)
-        return LMag[0]
-
+        term_1 = (3/2 + nu/6) * x
+        term_2 = (27/8 - 19*nu/8 + nu*nu/24) * x * x
+        term_3 = (135/16 + (-6889/144 + 41*np.pi*np.pi/24)*nu 
+                  + 31*nu*nu/24 + 7*nu*nu*nu/1296) * x * x * x
+        
+        return (nu/x**0.5) * (1 + term_1 + term_2 + term_3)
+    
     def _compute_spin_evolution(self):
         """
         Spin evolution of the binary;
@@ -114,20 +116,14 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator)
             spin_f[i] = (self.L_initial - self.Joft[2][i])/self.remnant_mass**2
         return spin_f
     
-    
     def _compute_remnant_spin(self):
         """
         compute the final spin of the binary;
         Eq(20) of https://arxiv.org/pdf/2101.11015.pdf
         """
-        
-        spl = splrep(self.time, self.spinoft)
-        # compute radiated energy at the final point
-        remnant_spin = splev(-100, spl) # self.Eoft[-1]
-        
-        return remnant_spin#self.Joft[-1]/self.M_remnant**2
+        remnant_spin = (self.L_initial - self.Joft[2][-1])/self.remnant_mass**2
+        return remnant_spin
     
-        #return self.spinoft[-1]
     
     
     
