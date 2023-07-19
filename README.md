@@ -10,7 +10,11 @@ Currently it has the ability to generate waveforms from ```NRHybSur3dq8``` and `
 
 ## Tutorials
 
-Example notebook is provided in ```gw_remnant/tutorials``` directory.
+Example notebook is provided in ```https://github.com/tousifislam/gw_remnant/tutorials``` directory.
+
+You can find examples with deafult waveforms (BHPTNRSur1dq1e4 and NRHybSur3dq8) here : [https://github.com/tousifislam/gw_remnant/blob/main/tutorials/example_with_default_waveforms.ipynb](https://github.com/tousifislam/gw_remnant/blob/main/tutorials/example_with_default_waveforms.ipynb)
+
+Examples with custom waveforms are given here : [https://github.com/tousifislam/gw_remnant/blob/main/tutorials/example_with_customized_waveform.ipynb](https://github.com/tousifislam/gw_remnant/blob/main/tutorials/example_with_customized_waveform.ipynb)
 
 
 ## Citation guideline
