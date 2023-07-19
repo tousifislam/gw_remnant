@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 long_description = open('README.md').read()
 
 setup(name='gw_remnant',
-      version='0.0.2',
+      version='0.0.1',
       author='Tousif Islam, Scott Field, Gaurav Khanna',
       author_email='tousifislam24@gmail.com',
       #packages=['BHPTNRremnant'],
