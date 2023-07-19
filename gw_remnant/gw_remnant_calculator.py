@@ -14,30 +14,11 @@
 ##
 #############################################################################
 
-from .gw_utils.waveform_generator import WaveformGenerator
 from .remnant_calculators.peak_luminosity_calculator import PeakLuminosityCalculator
 from .remnant_calculators.kick_velocity_calculator import LinearMomentumCalculator
 from .remnant_calculators.remnant_mass_calculator import RemnantMassCalculator
 from .remnant_calculators.remnant_spin_calculator import AngularMomentumCalculator
 from .gw_utils.gw_plotter import GWPlotter
-
-
-class GWWaveformGenerator(WaveformGenerator):
-    """
-    Class to generate gravitational waveforms for different models;
-    At this moment, the class supports three models:
-        (i) BHPTNRSur1dq1e4;
-        (ii) NRHybSur3dq8;
-        (iii) SEOBNRv4HM;
-    It further computes the remnant quantities using the following remnant
-    surrogates:
-        (i) NRHybSur3dq8Remnant;
-    """
-    def __init__(self, mass_ratio, modes=None, common_times=None, f_low=None, 
-                get_NRSur=True, get_BHPT=True):
-        super().__init__(mass_ratio, modes, common_times, f_low, 
-                         get_NRSur, get_BHPT)
-        
 
 class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCalculator,
                           LinearMomentumCalculator, RemnantMassCalculator):
@@ -58,6 +39,7 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
         (xiii) spinoft : spin as a function of time
         (xiv) remnant_spin : spin of the remnant black hole
         (xv) L_peak : peak luminosity of the binary black hole merger
+        (xvi) peak_kick : peak kick velocity
         
     It also provides methods to print quantities of interests and to plot time evolution
     of mass, energy, momentum and kick;

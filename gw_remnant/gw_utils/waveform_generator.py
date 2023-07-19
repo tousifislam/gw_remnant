@@ -125,7 +125,7 @@ class WaveformGenerator():
         chiB = [0,0,0.0]
         # All of these together
         mf, chif, vf, mf_err, chif_err, vf_err = fit.all(self.qinput, chiA, chiB)
-        return mf, mf_err, np.linalg.norm(vf), np.linalg.norm(vf_err)
+        return mf, mf_err, chif[-1], chif_err[-1], np.linalg.norm(vf), np.linalg.norm(vf_err)
 
     def _get_peaks_via_spline_fit(self, t, func):
         """

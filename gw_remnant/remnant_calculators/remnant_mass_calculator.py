@@ -37,6 +37,7 @@ class RemnantMassCalculator():
         self.M_initial = M_initial
         self.h_dot = self._compute_dhdt()
         self.E_dot = self._compute_energy_flux_dEdt()
+        self.E0 = self._compute_integration_constant_E0_from_PN()
         self.Eoft = self._compute_radiated_energy()
         self.E_rad = self.Eoft[-1]
         self.Moft = self._compute_bondi_mass()
@@ -77,41 +78,32 @@ class RemnantMassCalculator():
             # individual mode contribution
             dEdt_mode = (1/(16*np.pi))*(np.abs(self.h_dot[mode])**2) 
             dEdt += dEdt_mode
+        # if use_filter=True, we will smooth out the energy derivate a bit
         if self.use_filter:
             tmp = gwtools.interpolant_h(self.time, dEdt, s=max(dEdt)*0.0003)
-            #tmp = gwtools.interpolant_h(self.time, dEdt, s=max(dEdt)*0.00003) # used for q=64
-            #tmp = gwtools.interpolant_h(self.time, dEdt, s=max(dEdt)*0.00004) # used for q=32
             dEdt = splev(self.time, tmp, der=0)
         return dEdt
-
-    def _compute_avg_energy_flux_at_start(self):
-        """
-        computes the average energy flux at the start of the waveform;
-        following procedure described in page 2, after Eq(3) of
-        https://arxiv.org/pdf/1802.04276.pdf
-        """
-        indx = np.where(self.time <= self.time[0]+100)
-        E_over_100M = integrate.trapz(self.E_dot[indx],self.time[indx])
-        Edot_over_100M = E_over_100M/100
-        return Edot_over_100M
-
-    def _compute_integration_constant_E0(self, E0_dot):
+ 
+    def _compute_integration_constant_E0_from_PN(self):
         """
         integration constant for E(t) obtained using Newtonian calculation;
-        Eq(3) of https://arxiv.org/pdf/1802.04276.pdf
+        Eq(2.35) of https://arxiv.org/pdf/1111.5378.pdf
         """
-        return ((5./1024.)*((self.qinput**3.)/(1.+self.qinput)**6.)*E0_dot)**(1./5.) 
-
+        orb_phase = 0.5 * gwtools.phase(self.hdict[(2,2)])
+        orb_frequency = abs(np.gradient(orb_phase,edge_order=2)/np.gradient(self.time,edge_order=2))
+        x = orb_frequency[0]**(2/3)
+        nu = gwtools.q_to_nu(self.qinput)
+        term_1 = (-3/4 - nu/12) * x
+        term_2 = (-27/8 + 19*nu/8 - nu*nu/24) * x * x
+        term_3 = (-675/64 + (34445/576 - 205*np.pi*np.pi/96)*nu 
+                  - 144*nu*nu/96 - 35*nu*nu*nu/5184) * x * x * x
+        return 0.5*nu*x * ( 1 +  term_1 + term_2 + term_3 )
+    
     def _compute_radiated_energy(self):
         """
         compute total radiated energy E(t)
         """
-        # compute averaged energy flux at the start of the waveform
-        E_dot_avg_at_start = self._compute_avg_energy_flux_at_start()
-        # Newtonian calculation : intgration constant
-        E_dot_int_const = self._compute_integration_constant_E0(E_dot_avg_at_start)
-        # radiated energy
-        E_rad = integrate.cumtrapz(self.E_dot, self.time, initial=0.0) + E_dot_int_const 
+        E_rad = integrate.cumtrapz(self.E_dot, self.time, initial=0.0) + self.E0
         return E_rad
 
     def _compute_bondi_mass(self):
@@ -119,17 +111,14 @@ class RemnantMassCalculator():
         computes Bondi mass or the dynamic mass of the system;
         Eq(4) of https://arxiv.org/pdf/1802.04276.pdf
         """   
-        return self.M_initial * (1.0 - self.Eoft)
+        return self.M_initial * (1.0 - self.Eoft + self.E0)
 
     def _compute_remnant_mass(self):
         """ 
         computes remnant mass of the binary at a reference time of t=t_end;
-        Eq(5) of https://arxiv.org/pdf/1802.04276.pdf
+        Eq(9) of https://arxiv.org/abs/2301.07215
         """
-        # compute radiated energy at the final point
-        E_rad_final = self.Eoft[-1]
-        # compute remnant mass
-        M_remnant = self.M_initial * (1 - E_rad_final/(self.M_initial+E_rad_final)) 
+        M_remnant = self.M_initial * (1.0 - self.E_rad)
         return M_remnant    
     
 
