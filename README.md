@@ -14,14 +14,14 @@ Example notebook is provided in ```https://github.com/tousifislam/gw_remnant/tut
 
 You can find examples with deafult waveforms (BHPTNRSur1dq1e4 and NRHybSur3dq8) here : [https://github.com/tousifislam/gw_remnant/blob/main/tutorials/example_with_default_waveforms.ipynb](https://github.com/tousifislam/gw_remnant/blob/main/tutorials/example_with_default_waveforms.ipynb)
 
-* If you do not already have gwsurrogate and BHPTNRSurrogate(s) installed, you can use the example with customed waveforms for now *
+**If you do not already have gwsurrogate and BHPTNRSurrogate(s) installed, you can use the example with customed waveforms for now**
 
 Examples with custom waveforms are given here : [https://github.com/tousifislam/gw_remnant/blob/main/tutorials/example_with_customized_waveform.ipynb](https://github.com/tousifislam/gw_remnant/blob/main/tutorials/example_with_customized_waveform.ipynb)
 
 
 ## BHPTNRremnant
 
-```gw_remnant``` package has been used in developing NR-tuned perturbation based remnant model that can provide faithful estimates of the remnant properties for binaries with mass ratios ranging from ```q=3``` to ```q=1000``.
+```gw_remnant``` package has been used in developing NR-tuned perturbation based remnant model that can provide faithful estimates of the remnant properties for binaries with mass ratios ranging from ```q=3``` to ```q=1000```.
 
 ## Citation guideline
 
