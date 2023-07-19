@@ -14,8 +14,14 @@ Example notebook is provided in ```https://github.com/tousifislam/gw_remnant/tut
 
 You can find examples with deafult waveforms (BHPTNRSur1dq1e4 and NRHybSur3dq8) here : [https://github.com/tousifislam/gw_remnant/blob/main/tutorials/example_with_default_waveforms.ipynb](https://github.com/tousifislam/gw_remnant/blob/main/tutorials/example_with_default_waveforms.ipynb)
 
+* If you do not already have gwsurrogate and BHPTNRSurrogate(s) installed, you can use the example with customed waveforms for now *
+
 Examples with custom waveforms are given here : [https://github.com/tousifislam/gw_remnant/blob/main/tutorials/example_with_customized_waveform.ipynb](https://github.com/tousifislam/gw_remnant/blob/main/tutorials/example_with_customized_waveform.ipynb)
 
+
+## BHPTNRremnant
+
+```gw_remnant``` package has been used in developing NR-tuned perturbation based remnant model that can provide faithful estimates of the remnant properties for binaries with mass ratios ranging from ```q=3``` to ```q=1000``.
 
 ## Citation guideline
 
@@ -23,7 +29,7 @@ If you make use of any module from the Toolkit in your research please acknowled
 
 > This work makes use of the Black Hole Perturbation Toolkit.
 
-If you make use of the BHPTNRSur models please cite the following paper:
+If you make use of the ```gw_remnnat``` package or ```BHPTNRremnant``` surrogate models please cite the following paper:
 
 ```
 @article{Islam:2022laz,
