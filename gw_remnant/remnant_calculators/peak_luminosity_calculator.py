@@ -21,9 +21,47 @@ class PeakLuminosityCalculator(RemnantMassCalculator):
     Class to compute the peak luminosity of the GW radiation using a spline
     fit to the data
     """
-    def __init__(self, time, hdict, qinput, M_initial=1, use_filter=False):
+    def __init__(self, time, hdict, qinput, spin1_input=None, spin2_input=None, 
+                 ecc_input=None, E_initial=None, L_initial=None, 
+                 M_initial=1, use_filter=False):
+        """
+        Inputs:
         
-        super().__init__(time, hdict, qinput, M_initial, use_filter)
+        time (float): array of geometric times
+        hdict (float): dictionary of geometric waveform with modes as keys.
+                       keys should be as '(2,2)', '(3,3)' and so on
+        qinput (float): mass ratio value
+        spin1_input (array of floats): spin vector for the primary black hole at the start of the waveform. 
+                                       Example- [0,0,0.1]
+                                       default: None
+        spin2_input (array of floats): spin vector for the secondary black hole at the start of the waveform. 
+                                       Example- [0,0,0.1]
+                                       default: None
+        ecc_input (float): eccentricity estimate at the start of the waveform; 
+                           gw_remnant does not change whether this estimate is correct;
+                           user is supposed to know the eccentricity of the binary at the reference time;
+                           default: None
+        E_initial (float): initial energy of the binary
+                           default: None - in that case, we compute it using PN expression;
+                           set it to zero if you want to inspect change of energy/momenta;
+                           set it to a given value if you know the initial energy e.g. from NR simulaiton;
+        L_initial (float): initial angular momentum of the binary
+                           default: None - in that case, we compute it using PN expression;
+                           set it to zero if you want to inspect change of energy/momenta;
+                           set it to a given value if you know the initial energy e.g. from NR simulaiton;
+                           
+        M_initial (float): initial total mass of the binary;
+                           default: 1M.
+        use_filter (binary): if true, smooths the data while computing the flux; 
+                             default: False
+                           
+        Outputs:
+        
+        L_peak: peak luminosity in geometric units
+                Eq(27) of https://arxiv.org/pdf/2301.07215.pdf
+        """
+        super().__init__(time, hdict, qinput, spin1_input, spin2_input, 
+                 ecc_input, E_initial, L_initial, M_initial, use_filter)
         self.L_peak = self._compute_peak_luminosity()
     
     def _get_peaks_via_spline_fit(self, t, func):
@@ -48,7 +86,7 @@ class PeakLuminosityCalculator(RemnantMassCalculator):
     
     def _compute_peak_luminosity(self):
         """
-        computes the peak luminosity;
+        Computes the peak luminosity;
         Eq(1) of https://arxiv.org/pdf/2010.00120.pdf
         """
         # find the max value of the discrete series
