@@ -14,9 +14,9 @@
 
 import numpy as np
 
-from gw_remnant.remnant_calculators.peak_luminosity_calculator import PeakLuminosityCalculator
-from gw_remnant.remnant_calculators.kick_velocity_calculator import LinearMomentumCalculator
-from gw_remnant.remnant_calculators.remnant_mass_calculator import RemnantMassCalculator
+from ..remnant_calculators.peak_luminosity_calculator import PeakLuminosityCalculator
+from ..remnant_calculators.kick_velocity_calculator import LinearMomentumCalculator
+from ..remnant_calculators.remnant_mass_calculator import RemnantMassCalculator
 
 import matplotlib
 import matplotlib.pyplot as plt
