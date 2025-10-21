@@ -1,6 +1,7 @@
 """
 Calculators for remnant properties.
 """
+__author__ = "Tousif Islam"
 
 from . import remnant_spin_calculator
 from . import remnant_mass_calculator
