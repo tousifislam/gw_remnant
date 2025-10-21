@@ -14,24 +14,31 @@
 
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as spline
-
-PATH_TO_BHPTNRSur = "/home/UMDAR.UMASSD.EDU/tislam/work/BHPTNRSurrogate"
 import sys
-sys.path.append(PATH_TO_BHPTNRSur+"/surrogates")
-import BHPTNRSur1dq1e4 as bhptsur
-
 import gwtools
-
 import lal
 import lalsimulation as lalsim
 from lal import MSUN_SI, MTSUN_SI, PC_SI, C_SI
 
-import gwsurrogate
-sur = gwsurrogate.LoadSurrogate('NRHybSur3dq8')
+try:
+    PATH_TO_BHPTNRSur = "/home/UMDAR.UMASSD.EDU/tislam/work/BHPTNRSurrogate"
+    sys.path.append(PATH_TO_BHPTNRSur+"/surrogates")
+    import BHPTNRSur1dq1e4 as bhptsur
+except:
+    print("BHPTNRSur1dq1e4 cannot be loaded - check if you have BHPTNRSurrogate path correctly given!")
 
-import surfinBH
-fit_name = 'NRSur3dq8Remnant'
-fit = surfinBH.LoadFits(fit_name)
+try:
+    import gwsurrogate
+    sur = gwsurrogate.LoadSurrogate('NRHybSur3dq8')
+except:
+    print("BHPTNRSur1dq1e4 cannot be loaded - check if you have BHPTNRSurrogate path correctly given!")
+
+try:
+    import surfinBH
+    fit_name = 'NRSur3dq8Remnant'
+    fit = surfinBH.LoadFits(fit_name)
+except:
+    print("BHPTNRSur1dq1e4 cannot be loaded - check if you have BHPTNRSurrogate path correctly given!")
 
 
 class WaveformGenerator():
