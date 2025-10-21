@@ -119,7 +119,10 @@ class RemnantMassCalculator(InitialEnergyMomenta):
         """
         Compute total radiated energy E(t)
         """
-        E_rad = integrate.cumtrapz(self.E_dot, self.time, initial=0.0) + self.E_initial
+        try:
+            E_rad = integrate.cumtrapz(self.E_dot, self.time, initial=0.0) + self.E_initial
+        except:
+            E_rad = integrate.cumulative_trapezoid(self.E_dot, self.time, initial=0.0) + self.E_initial
         return E_rad
 
     def _compute_bondi_mass(self):

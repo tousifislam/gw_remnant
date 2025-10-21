@@ -167,9 +167,14 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         Radiated linear momentum vector as a function of time;
         Obtained by integrating Eq(6),(7) and (8) of https://arxiv.org/pdf/1802.04276.pdf
         """
-        Pxoft = integrate.cumtrapz(self.P_dot[0], self.time, initial=0.0)
-        Pyoft = integrate.cumtrapz(self.P_dot[1], self.time, initial=0.0)
-        Pzoft = integrate.cumtrapz(self.P_dot[2], self.time, initial=0.0)
+        try:
+            Pxoft = integrate.cumtrapz(self.P_dot[0], self.time, initial=0.0)
+            Pyoft = integrate.cumtrapz(self.P_dot[1], self.time, initial=0.0)
+            Pzoft = integrate.cumtrapz(self.P_dot[2], self.time, initial=0.0)
+        except:
+            Pxoft = integrate.cumulative_trapezoid(self.P_dot[0], self.time, initial=0.0)
+            Pyoft = integrate.cumulative_trapezoid(self.P_dot[1], self.time, initial=0.0)
+            Pzoft = integrate.cumulative_trapezoid(self.P_dot[2], self.time, initial=0.0)
         return np.array([Pxoft, Pyoft, Pzoft])
     
     def _compute_voft(self):

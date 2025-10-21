@@ -125,9 +125,14 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
         Radiated angular momentum vector as a function of time;
         Obtained by integrating Eq(15),(16),(17) of https://arxiv.org/pdf/1802.04276.pdf
         """
-        Jxoft = integrate.cumtrapz(self.J_dot[0], self.time, initial=0.0)
-        Jyoft = integrate.cumtrapz(self.J_dot[1], self.time, initial=0.0)
-        Jzoft = integrate.cumtrapz(self.J_dot[2], self.time, initial=0.0)
+        try:
+            Jxoft = integrate.cumtrapz(self.J_dot[0], self.time, initial=0.0)
+            Jyoft = integrate.cumtrapz(self.J_dot[1], self.time, initial=0.0)
+            Jzoft = integrate.cumtrapz(self.J_dot[2], self.time, initial=0.0)
+        except:
+            Jxoft = integrate.cumulative_trapezoid(self.J_dot[0], self.time, initial=0.0)
+            Jyoft = integrate.cumulative_trapezoid(self.J_dot[1], self.time, initial=0.0)
+            Jzoft = integrate.cumulative_trapezoid(self.J_dot[2], self.time, initial=0.0)
         return np.array([Jxoft, Jyoft, Jzoft])
     
     def _compute_spin_evolution(self):
