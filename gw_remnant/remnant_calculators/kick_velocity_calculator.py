@@ -21,9 +21,50 @@ class LinearMomentumCalculator(RemnantMassCalculator):
     """
     class to compute the final kick of the remnant black hole
     """
-    def __init__(self, time, hdict, qinput, M_initial=1, use_filter=False):
+    def __init__(self, time, hdict, qinput, spin1_input=None, spin2_input=None, 
+                 ecc_input=None, E_initial=None, L_initial=None, 
+                 M_initial=1, use_filter=False):
+        """
+        Inputs:
         
-        super().__init__(time, hdict, qinput, M_initial, use_filter)
+        time (float): array of geometric times
+        hdict (float): dictionary of geometric waveform with modes as keys.
+                       keys should be as '(2,2)', '(3,3)' and so on
+        qinput (float): mass ratio value
+        spin1_input (array of floats): spin vector for the primary black hole at the start of the waveform. 
+                                       Example- [0,0,0.1]
+                                       default: None
+        spin2_input (array of floats): spin vector for the secondary black hole at the start of the waveform. 
+                                       Example- [0,0,0.1]
+                                       default: None
+        ecc_input (float): eccentricity estimate at the start of the waveform; 
+                           gw_remnant does not change whether this estimate is correct;
+                           user is supposed to know the eccentricity of the binary at the reference time;
+                           default: None
+        E_initial (float): initial energy of the binary
+                           default: None - in that case, we compute it using PN expression;
+                           set it to zero if you want to inspect change of energy/momenta;
+                           set it to a given value if you know the initial energy e.g. from NR simulaiton;
+        L_initial (float): initial angular momentum of the binary
+                           default: None - in that case, we compute it using PN expression;
+                           set it to zero if you want to inspect change of energy/momenta;
+                           set it to a given value if you know the initial energy e.g. from NR simulaiton;
+                           
+        M_initial (float): initial total mass of the binary;
+                           default: 1M.
+        use_filter (binary): if true, smooths the data while computing the flux; 
+                             default: False
+                             
+        Output:
+        P_dot: linear momentum flux
+        Poft: linear momentum evolution
+        voft: velocity evolution
+        kickoft: kick velocity evolution
+        remnant_kick: final kick of the remnant black hole
+        peak_kick: peak value of the kick profile
+        """
+        super().__init__(time, hdict, qinput, spin1_input, spin2_input, 
+                 ecc_input, E_initial, L_initial, M_initial, use_filter)
         
         self.lmax = self._get_lmax()
         self.P_dot = np.array([self._compute_dPxdt(), self._compute_dPydt(), 
@@ -36,7 +77,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
     
     def _read_dhdt_dict(self, l, m):
         """
-        computes time derivative of each mode in a waveform
+        Computes time derivative of each mode in a waveform
         pass hdict having both positive and negative modes;
         For unphysical modes e.g. (3,4) etc as well as for modes
         that do not exist in the waveform dictionary, it returns
@@ -54,7 +95,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
     
     def _get_lmax(self):
         """
-        maximum value of \ell modes available in the input waveform data
+        Maximum value of \ell modes available in the input waveform data
         """
         return max([mode[0] for mode in self.hdict.keys()])
         
@@ -84,7 +125,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
 
     def _compute_dPxdt(self):
         """
-        derivative of the emitted linear momentum in the x-direction;
+        Provides the derivative of the emitted linear momentum in the x-direction;
         Eq(6) of https://arxiv.org/pdf/1802.04276.pdf
         """
         dPxdt = np.zeros(len(self.time))
@@ -97,7 +138,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
     
     def _compute_dPydt(self):
         """
-        derivative of the emitted linear momentum in the y-direction;
+        Provides the derivative of the emitted linear momentum in the y-direction;
         Eq(7) of https://arxiv.org/pdf/1802.04276.pdf
         """
         dPydt = np.zeros(len(self.time))
@@ -110,7 +151,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
     
     def _compute_dPzdt(self):
         """
-        derivative of the emitted linear momentum in the z-direction;
+        Provides the derivative of the emitted linear momentum in the z-direction;
         Eq(8) of https://arxiv.org/pdf/1802.04276.pdf
         """
         dPzdt = np.zeros(len(self.time))

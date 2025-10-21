@@ -24,10 +24,9 @@ from matplotlib import cm
 import matplotlib.patches as mpatches
 matplotlib.rcParams['mathtext.fontset'] ='stix'
 matplotlib.rcParams['font.family'] = 'STIXGeneral' 
-matplotlib.rcParams['axes.linewidth'] = 2 #set the value globally
+matplotlib.rcParams['axes.linewidth'] = 1 #set the value globally
 plt.rcParams["figure.figsize"] = (14,10)
 plt.rcParams['font.size'] = '18'
-
 
 class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator, 
                 RemnantMassCalculator):
@@ -40,20 +39,20 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
         plot subplots for each kinds of attributes
         """       
         if title is not None:
-            plt.title('q=%.2f'%self.qinput, fontsize=14)
+            plt.title('q=%.2f'%self.qinput, fontsize=16)
         plt.plot(X, Y)
-        plt.ylabel('%s'%Ylabel, fontsize=12)
+        plt.ylabel('%s'%Ylabel, fontsize=14)
         if Xlabel is not None:
-            plt.xlabel('%s'%Xlabel, fontsize=12)
-        plt.yticks(fontsize=12)
-        plt.xticks(fontsize=12)
+            plt.xlabel('%s'%Xlabel, fontsize=14)
+        plt.yticks(fontsize=14)
+        plt.xticks(fontsize=14)
         plt.grid()
     
     def plot_mass_energy(self):
         """
         plot masses and energy as a function of time
         """
-        plt.figure(figsize=(8,6))
+        plt.figure(figsize=(10,8))
         plt.subplot(411)
         self._mk_subplot(self.time, np.real(self.h_dot[(2,2)]), Ylabel='rh_22/M', 
                          title='q=%.2f'%self.qinput)
@@ -100,7 +99,7 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
         """
         plot the magnitude of the kick velocity as a function of time
         """
-        plt.figure(figsize=(6,4))
+        plt.figure(figsize=(8,6))
         self._mk_subplot(self.time, self.kickoft, Ylabel='|v(t) [c]|', Xlabel='time [M]',
                          title='q=%.2f'%self.qinput)
         plt.tight_layout()

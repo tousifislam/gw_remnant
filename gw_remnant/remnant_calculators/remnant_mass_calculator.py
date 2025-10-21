@@ -17,9 +17,9 @@ import scipy.integrate as integrate
 from scipy import signal
 from scipy.interpolate import splev, splrep
 import gwtools
+from .initial_energy_momenta import InitialEnergyMomenta
 
-
-class RemnantMassCalculator():
+class RemnantMassCalculator(InitialEnergyMomenta):
     """
     Class to compute the remnant mass of a binary given a inspiral-merger-ringdown 
     waveform.
@@ -28,16 +28,47 @@ class RemnantMassCalculator():
     in this package.
     """
     
-    def __init__(self, time, hdict, qinput, M_initial=1, use_filter=False):
+    def __init__(self, time, hdict, qinput, spin1_input=None, spin2_input=None, 
+                 ecc_input=None, E_initial=None, L_initial=None, 
+                 M_initial=1, use_filter=False):
+        """
+        Inputs:
         
-        self.time = time
-        self.hdict = hdict
-        self.qinput = qinput
+        time (float): array of geometric times
+        hdict (float): dictionary of geometric waveform with modes as keys.
+                       keys should be as '(2,2)', '(3,3)' and so on
+        qinput (float): mass ratio value
+        spin1_input (array of floats): spin vector for the primary black hole at the start of the waveform. 
+                                       Example- [0,0,0.1]
+                                       default: None
+        spin2_input (array of floats): spin vector for the secondary black hole at the start of the waveform. 
+                                       Example- [0,0,0.1]
+                                       default: None
+        ecc_input (float): eccentricity estimate at the start of the waveform; 
+                           gw_remnant does not change whether this estimate is correct;
+                           user is supposed to know the eccentricity of the binary at the reference time;
+                           default: None
+        E_initial (float): initial energy of the binary
+                           default: None - in that case, we compute it using PN expression;
+                           set it to zero if you want to inspect change of energy/momenta;
+                           set it to a given value if you know the initial energy e.g. from NR simulaiton;
+        L_initial (float): initial angular momentum of the binary
+                           default: None - in that case, we compute it using PN expression;
+                           set it to zero if you want to inspect change of energy/momenta;
+                           set it to a given value if you know the initial energy e.g. from NR simulaiton;
+                           
+        M_initial (float): initial total mass of the binary;
+                           default: 1M.
+        use_filter (binary): if true, smooths the data while computing the flux; 
+                             default: False
+        """
+        super().__init__(time, hdict, qinput, spin1_input, spin2_input, 
+                 ecc_input, E_initial, L_initial)
+    
         self.use_filter = use_filter
         self.M_initial = M_initial
         self.h_dot = self._compute_dhdt()
         self.E_dot = self._compute_energy_flux_dEdt()
-        self.E0 = self._compute_integration_constant_E0_from_PN()
         self.Eoft = self._compute_radiated_energy()
         self.E_rad = self.Eoft[-1]
         self.Moft = self._compute_bondi_mass()
@@ -45,7 +76,7 @@ class RemnantMassCalculator():
 
     def _compute_dhdt(self):
         """
-        computes time derivative of each mode in the waveform dictionary;
+        Computes time derivative of each mode in the waveform dictionary;
         pass hdict having both positive and negative m modes;
         """
         hdot_dict = {mode : np.gradient(self.hdict[mode],edge_order=2)
@@ -69,7 +100,7 @@ class RemnantMassCalculator():
 
     def _compute_energy_flux_dEdt(self):
         """
-        computes the total energy flux from all modes of a waveform given their 
+        Computes the total energy flux from all modes of a waveform given their 
         respective time derivatives;
         Eq(2) of https://arxiv.org/pdf/1802.04276.pdf
         """
@@ -83,39 +114,24 @@ class RemnantMassCalculator():
             tmp = gwtools.interpolant_h(self.time, dEdt, s=max(dEdt)*0.0003)
             dEdt = splev(self.time, tmp, der=0)
         return dEdt
- 
-    def _compute_integration_constant_E0_from_PN(self):
-        """
-        integration constant for E(t) obtained using Newtonian calculation;
-        Eq(2.35) of https://arxiv.org/pdf/1111.5378.pdf
-        """
-        orb_phase = 0.5 * gwtools.phase(self.hdict[(2,2)])
-        orb_frequency = abs(np.gradient(orb_phase,edge_order=2)/np.gradient(self.time,edge_order=2))
-        x = orb_frequency[0]**(2/3)
-        nu = gwtools.q_to_nu(self.qinput)
-        term_1 = (-3/4 - nu/12) * x
-        term_2 = (-27/8 + 19*nu/8 - nu*nu/24) * x * x
-        term_3 = (-675/64 + (34445/576 - 205*np.pi*np.pi/96)*nu 
-                  - 144*nu*nu/96 - 35*nu*nu*nu/5184) * x * x * x
-        return 0.5*nu*x * ( 1 +  term_1 + term_2 + term_3 )
     
     def _compute_radiated_energy(self):
         """
-        compute total radiated energy E(t)
+        Compute total radiated energy E(t)
         """
-        E_rad = integrate.cumtrapz(self.E_dot, self.time, initial=0.0) + self.E0
+        E_rad = integrate.cumtrapz(self.E_dot, self.time, initial=0.0) + self.E_initial
         return E_rad
 
     def _compute_bondi_mass(self):
         """ 
-        computes Bondi mass or the dynamic mass of the system;
+        Computes Bondi mass or the dynamic mass of the system;
         Eq(4) of https://arxiv.org/pdf/1802.04276.pdf
         """   
-        return self.M_initial * (1.0 - self.Eoft + self.E0)
+        return self.M_initial * (1.0 - self.Eoft + self.E_initial)
 
     def _compute_remnant_mass(self):
         """ 
-        computes remnant mass of the binary at a reference time of t=t_end;
+        Computes remnant mass of the binary at a reference time of t=t_end;
         Eq(9) of https://arxiv.org/abs/2301.07215
         """
         M_remnant = self.M_initial * (1.0 - self.E_rad)
