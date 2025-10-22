@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import numpy as np
 import scipy.integrate as integrate
+import lal
 
 from .remnant_mass_calculator import RemnantMassCalculator
 
@@ -85,7 +86,9 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         self.Poft = self._compute_Poft()
         self.voft = self._compute_voft()
         self.kickoft = self._compute_kickoft()
+        self.kickoft_kmps = self._compute_kickoft_in_kmps()
         self.remnant_kick = self._compute_remnant_kick()
+        self.remnant_kick_kmps = self._compute_remnant_kick_in_kmps()
         self.peak_kick = self._compute_peak_kick()
     
     def _read_dhdt_dict(self, l, m):
@@ -305,6 +308,18 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         """
         return np.array([np.linalg.norm(self.voft[i]) for i in range(len(self.time))])
 
+    def _compute_kickoft_in_kmps(self):
+        """
+        Compute kick velocity magnitude evolution in km/sec.
+        
+        Calculates the magnitude of the recoil (kick) velocity imparted to
+        the remnant as a function of time.
+        
+        Returns:
+            [np.ndarray]: Kick velocity magnitude as a function of time in units of c.
+        """
+        return self.kickoft * lal.C_SI * 1e-3
+
     def _get_peak_via_quadratic_fit(self, t, func):
         """
         Find peak of a function using quadratic interpolation.
@@ -360,3 +375,17 @@ class LinearMomentumCalculator(RemnantMassCalculator):
             [float]: Final kick velocity magnitude in units of c.
         """
         return self.kickoft[-1]
+
+    def _compute_remnant_kick_in_kmps(self):
+        """
+        Compute final remnant kick velocity in km/sec.
+        
+        Returns the final kick velocity of the remnant black hole, taken as
+        the last value of the kick velocity time series.
+        
+        See Eq. (14) of arXiv:1802.04276.
+        
+        Returns:
+            [float]: Final kick velocity magnitude in units of c.
+        """
+        return self.kickoft[-1] * lal.C_SI * 1e-3

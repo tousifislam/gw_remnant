@@ -129,4 +129,5 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
         print(f"Remnant mass                  : {self.remnant_mass:.8f} M")
         print(f"Remnant spin (dimensionless)  : {self.remnant_spin:.8f}")
         print(f"Remnant kick velocity         : {self.remnant_kick:.8f} c")
+        print(f"Remnant kick velocity         : {self.remnant_kick_kmps:.2f} km/s")
         print("=" * 50)

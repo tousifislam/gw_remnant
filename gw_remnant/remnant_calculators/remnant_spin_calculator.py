@@ -195,45 +195,77 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
         """
         Compute dimensionless spin evolution of the system.
         
-        WARNING: This formula may be incomplete. It only accounts for orbital
-        angular momentum changes and does not include initial black hole spins.
+        Calculates the dimensionless spin as a function of time by accounting for:
+        1. Initial orbital angular momentum (L_initial)
+        2. Initial spin angular momentum of both black holes (S1_z + S2_z)
+        3. Angular momentum radiated away up to time t (J_rad,z(t))
+        4. Time-dependent mass M(t)
         
-        Current formula: χ(t) = (L_initial - J_rad,z(t)) / M_f^2
+        Formula: χ(t) = (L_initial + S1_z + S2_z - J_rad,z(t)) / M(t)^2
         
-        A more complete formula should be:
-        χ(t) = (L_initial + S1_z + S2_z - J_rad,z(t)) / M(t)^2
-        
-        where S1_z and S2_z are the z-components of the initial spins.
-        
-        See Eq. (20) of arXiv:2101.11015 (but note potential issues).
+        See Eq. (20) of arXiv:2101.11015.
         
         Returns:
             [np.ndarray]: Dimensionless spin magnitude as a function of time.
         """
+        # Get individual initial masses
+        m1 = self.qinput / (1 + self.qinput)  # Primary mass
+        m2 = 1 / (1 + self.qinput)  # Secondary mass
+        
+        # Handle spin input (could be scalar or array)
+        chi1_z = np.linalg.norm(self.spin1_input)
+        chi2_z = np.linalg.norm(self.spin2_input)
+        
+        # Convert dimensionless spins to angular momentum
+        S1_z = chi1_z * m1**2
+        S2_z = chi2_z * m2**2
+        
+        # Compute spin evolution at each time step
         spin_f = np.zeros(len(self.time))
         for i in range(len(spin_f)):
-            spin_f[i] = (self.L_initial - self.Joft[2][i]) / self.remnant_mass**2
+            # Total angular momentum at time t
+            J_z_t = self.L_initial + S1_z + S2_z - self.Joft[2][i]
+            
+            # Dimensionless spin using time-dependent mass
+            spin_f[i] = J_z_t / self.Moft[i]**2
+        
         return spin_f
     
     def _compute_remnant_spin(self):
         """
         Compute final dimensionless spin of the remnant black hole.
         
-        WARNING: This formula may be incomplete. It only accounts for orbital
-        angular momentum changes and does not include initial black hole spins.
+        Calculates the final spin by accounting for:
+        1. Initial orbital angular momentum (L_initial)
+        2. Initial spin angular momentum of both black holes (S1_z + S2_z)
+        3. Angular momentum radiated away (J_rad,z)
         
-        Current formula: χ_f = (L_initial - J_rad,z) / M_f^2
+        Formula: χ_f = (L_initial + S1_z + S2_z - J_rad,z) / M_f^2
         
-        A more complete formula should be:
-        χ_f = (L_initial + S1_z + S2_z - J_rad,z) / M_f^2
+        where S1_z and S2_z are converted from dimensionless spins χ₁, χ₂
+        using S_i = χ_i * m_i^2.
         
-        where S1_z and S2_z are the z-components of the initial spins,
-        and M_f is the final remnant mass.
-        
-        See Eq. (20) of arXiv:2101.11015 (but note potential issues).
+        See Eq. (20) of arXiv:2101.11015.
         
         Returns:
             [float]: Final remnant dimensionless spin magnitude.
         """
-        remnant_spin = (self.L_initial - self.Joft[2][-1]) / self.remnant_mass**2
+        # Get individual initial masses
+        m1 = self.qinput / (1 + self.qinput)  # Primary mass
+        m2 = 1 / (1 + self.qinput)  # Secondary mass
+        
+        # Handle spin input (could be scalar or array)
+        chi1_z = np.linalg.norm(self.spin1_input)
+        chi2_z = np.linalg.norm(self.spin2_input)
+        
+        # Convert dimensionless spins to angular momentum
+        S1_z = chi1_z * m1**2
+        S2_z = chi2_z * m2**2
+        
+        # Total angular momentum at final time
+        J_final_z = self.L_initial + S1_z + S2_z - self.Joft[2][-1]
+        
+        # Dimensionless remnant spin
+        remnant_spin = J_final_z / self.remnant_mass**2
+        
         return remnant_spin
