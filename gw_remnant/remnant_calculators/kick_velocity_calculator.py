@@ -273,13 +273,14 @@ class LinearMomentumCalculator(RemnantMassCalculator):
             [np.ndarray]: Radiated linear momentum vector [3 x N_times] in units of M.
         """
         try:
-            Pxoft = integrate.cumtrapz(self.P_dot[0], self.time, initial=0.0)
-            Pyoft = integrate.cumtrapz(self.P_dot[1], self.time, initial=0.0)
-            Pzoft = integrate.cumtrapz(self.P_dot[2], self.time, initial=0.0)
-        except:
             Pxoft = integrate.cumulative_trapezoid(self.P_dot[0], self.time, initial=0.0)
             Pyoft = integrate.cumulative_trapezoid(self.P_dot[1], self.time, initial=0.0)
             Pzoft = integrate.cumulative_trapezoid(self.P_dot[2], self.time, initial=0.0)
+        except AttributeError:
+            # scipy < 1.14: cumulative_trapezoid was named cumtrapz
+            Pxoft = integrate.cumtrapz(self.P_dot[0], self.time, initial=0.0)
+            Pyoft = integrate.cumtrapz(self.P_dot[1], self.time, initial=0.0)
+            Pzoft = integrate.cumtrapz(self.P_dot[2], self.time, initial=0.0)
         return np.array([Pxoft, Pyoft, Pzoft])
     
     def _compute_voft(self):

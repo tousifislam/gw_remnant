@@ -63,40 +63,38 @@ class InitialEnergyMomenta:
         L_initial (float): Initial orbital angular momentum
     """
     
-    def __init__(self, time, hdict, qinput, spin1_input=None, spin2_input=None, 
+    def __init__(self, time, hdict, qinput, spin1_input=None, spin2_input=None,
                  ecc_input=None, E_initial=None, L_initial=None):
-        
+
+        # --- Input validation ---
+        self._validate_inputs(time, hdict, qinput, spin1_input, spin2_input, ecc_input)
+
         # read waveforms
         self.time = time
         self.hdict = hdict
         # Ensure negative m modes are present using symmetry relation
-        for mode in self.hdict.keys():
-            if mode[1] == 0:
-                pass
-            else:
-                if (mode[0], mode[1]) in self.hdict.keys():
-                    pass
-                else:
-                    self.hdict[(mode[0], -mode[1])] = (-1)**mode[0] * np.conjugate(self.hdict[mode])
-        
+        for mode in list(self.hdict.keys()):
+            if mode[1] != 0 and (mode[0], -mode[1]) not in self.hdict:
+                self.hdict[(mode[0], -mode[1])] = (-1)**mode[0] * np.conjugate(self.hdict[mode])
+
         # Mass ratio
-        self.qinput = qinput        
-        
+        self.qinput = qinput
+
         # Spin vectors : primary black hole
         if spin1_input is None:
             self.spin1_input = np.array([0.0, 0.0, 0.0])
         else:
             self.spin1_input = np.array(spin1_input)
-        
+
         # Spin vectors : secondary black hole
         if spin2_input is None:
             self.spin2_input = np.array([0.0, 0.0, 0.0])
         else:
             self.spin2_input = np.array(spin2_input)
-            
+
         # Eccentricity
         if ecc_input is None:
-            self.ecc_input = 0.0 
+            self.ecc_input = 0.0
         else:
             self.ecc_input = ecc_input
 
@@ -112,6 +110,52 @@ class InitialEnergyMomenta:
         else:
             self.L_initial = L_initial
         
+    @staticmethod
+    def _validate_inputs(time, hdict, qinput, spin1_input, spin2_input, ecc_input):
+        """Validate user inputs and raise ValueError on invalid data."""
+        # Time array
+        if len(time) < 2:
+            raise ValueError("Time array must have at least 2 elements.")
+        dt = np.diff(time)
+        if np.any(dt <= 0):
+            raise ValueError("Time array must be monotonically increasing.")
+
+        # Required (2,2) mode
+        if (2, 2) not in hdict:
+            raise ValueError(
+                "Waveform dictionary must contain the (2,2) mode. "
+                f"Available modes: {list(hdict.keys())}"
+            )
+
+        # Mass ratio
+        if qinput < 1:
+            raise ValueError(
+                f"Mass ratio q must be >= 1 (q = m1/m2 with m1 >= m2), got q={qinput}."
+            )
+
+        # Spin magnitudes
+        for label, spin in [("spin1_input", spin1_input), ("spin2_input", spin2_input)]:
+            if spin is not None:
+                spin_arr = np.asarray(spin)
+                if spin_arr.shape != (3,):
+                    raise ValueError(
+                        f"{label} must be a 3-component vector [sx, sy, sz], "
+                        f"got shape {spin_arr.shape}."
+                    )
+                mag = np.linalg.norm(spin_arr)
+                if mag > 1.0:
+                    raise ValueError(
+                        f"{label} magnitude must be <= 1 for a black hole, "
+                        f"got |chi| = {mag:.4f}."
+                    )
+
+        # Eccentricity
+        if ecc_input is not None:
+            if ecc_input < 0 or ecc_input >= 1:
+                raise ValueError(
+                    f"Eccentricity must satisfy 0 <= e < 1, got e={ecc_input}."
+                )
+
     def _E0_from_PN(self):
         """
         Compute initial energy using post-Newtonian expressions.

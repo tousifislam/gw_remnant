@@ -182,13 +182,14 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
             [np.ndarray]: Radiated angular momentum vector [3 x N_times] in units of M^2.
         """
         try:
-            Jxoft = integrate.cumtrapz(self.J_dot[0], self.time, initial=0.0)
-            Jyoft = integrate.cumtrapz(self.J_dot[1], self.time, initial=0.0)
-            Jzoft = integrate.cumtrapz(self.J_dot[2], self.time, initial=0.0)
-        except:
             Jxoft = integrate.cumulative_trapezoid(self.J_dot[0], self.time, initial=0.0)
             Jyoft = integrate.cumulative_trapezoid(self.J_dot[1], self.time, initial=0.0)
             Jzoft = integrate.cumulative_trapezoid(self.J_dot[2], self.time, initial=0.0)
+        except AttributeError:
+            # scipy < 1.14: cumulative_trapezoid was named cumtrapz
+            Jxoft = integrate.cumtrapz(self.J_dot[0], self.time, initial=0.0)
+            Jyoft = integrate.cumtrapz(self.J_dot[1], self.time, initial=0.0)
+            Jzoft = integrate.cumtrapz(self.J_dot[2], self.time, initial=0.0)
         return np.array([Jxoft, Jyoft, Jzoft])
     
     def _compute_spin_evolution(self):
@@ -212,23 +213,18 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
         m1 = self.qinput / (1 + self.qinput)  # Primary mass
         m2 = 1 / (1 + self.qinput)  # Secondary mass
         
-        # Handle spin input (could be scalar or array)
-        chi1_z = np.linalg.norm(self.spin1_input)
-        chi2_z = np.linalg.norm(self.spin2_input)
-        
+        # Extract z-component of spin vectors
+        chi1_z = self.spin1_input[2]
+        chi2_z = self.spin2_input[2]
+
         # Convert dimensionless spins to angular momentum
         S1_z = chi1_z * m1**2
         S2_z = chi2_z * m2**2
-        
-        # Compute spin evolution at each time step
-        spin_f = np.zeros(len(self.time))
-        for i in range(len(spin_f)):
-            # Total angular momentum at time t
-            J_z_t = self.L_initial + S1_z + S2_z - self.Joft[2][i]
-            
-            # Dimensionless spin using time-dependent mass
-            spin_f[i] = J_z_t / self.Moft[i]**2
-        
+
+        # Compute spin evolution (vectorized)
+        J_z_t = self.L_initial + S1_z + S2_z - self.Joft[2]
+        spin_f = J_z_t / self.Moft**2
+
         return spin_f
     
     def _compute_remnant_spin(self):
@@ -254,14 +250,14 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
         m1 = self.qinput / (1 + self.qinput)  # Primary mass
         m2 = 1 / (1 + self.qinput)  # Secondary mass
         
-        # Handle spin input (could be scalar or array)
-        chi1_z = np.linalg.norm(self.spin1_input)
-        chi2_z = np.linalg.norm(self.spin2_input)
-        
+        # Extract z-component of spin vectors
+        chi1_z = self.spin1_input[2]
+        chi2_z = self.spin2_input[2]
+
         # Convert dimensionless spins to angular momentum
         S1_z = chi1_z * m1**2
         S2_z = chi2_z * m2**2
-        
+
         # Total angular momentum at final time
         J_final_z = self.L_initial + S1_z + S2_z - self.Joft[2][-1]
         

@@ -123,10 +123,10 @@ class PeakLuminosityCalculator(RemnantMassCalculator):
         """
         # Find discrete maximum
         discrete_peak_index = np.argmax(self.E_dot)
-        
-        # Select ±10 points around the discrete peak
-        indx_begin = discrete_peak_index - 10
-        indx_end = discrete_peak_index + 10
+
+        # Select ±10 points around the discrete peak, clamped to array bounds
+        indx_begin = max(0, discrete_peak_index - 10)
+        indx_end = min(len(self.time), discrete_peak_index + 10)
         time_cut = self.time[indx_begin:indx_end]
         L_cut = self.E_dot[indx_begin:indx_end]
         
