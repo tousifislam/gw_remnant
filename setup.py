@@ -6,7 +6,7 @@ with open('README.md', 'r', encoding='utf-8') as fh:
 
 setup(
     name='gw_remnant',
-    version='0.2.0',  # Updated version
+    version='0.3.0',
     author='Tousif Islam, Scott Field, Gaurav Khanna',
     author_email='tousifislam24@gmail.com',
     maintainer='Tousif Islam',

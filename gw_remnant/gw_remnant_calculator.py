@@ -111,10 +111,38 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
         super().__init__(time, hdict, qinput, spin1_input, spin2_input, 
                          ecc_input, E_initial, L_initial, M_initial, use_filter)
         
+    def get_remnant_properties(self):
+        """
+        Return remnant properties as a dictionary.
+
+        Returns:
+            dict: Dictionary containing:
+                - 'mass_ratio': Mass ratio q = m1/m2
+                - 'M_initial': Initial total mass
+                - 'E_rad': Total radiated energy
+                - 'L_peak': Peak luminosity
+                - 'remnant_mass': Final remnant mass
+                - 'remnant_spin': Final dimensionless spin
+                - 'remnant_kick': Final kick velocity in units of c
+                - 'remnant_kick_kmps': Final kick velocity in km/s
+                - 'peak_kick': Peak kick velocity in units of c
+        """
+        return {
+            'mass_ratio': self.qinput,
+            'M_initial': self.M_initial,
+            'E_rad': self.E_rad,
+            'L_peak': self.L_peak,
+            'remnant_mass': self.remnant_mass,
+            'remnant_spin': self.remnant_spin,
+            'remnant_kick': self.remnant_kick,
+            'remnant_kick_kmps': self.remnant_kick_kmps,
+            'peak_kick': self.peak_kick,
+        }
+
     def print_remnants(self):
         """
         Print summary of remnant properties.
-        
+
         Displays key remnant quantities including mass ratio, initial mass,
         total radiated energy, peak luminosity, and final remnant mass, spin,
         and kick velocity. All quantities are printed in geometric units.

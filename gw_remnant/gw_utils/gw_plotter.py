@@ -56,7 +56,8 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
         return f'$[q,\\chi_{{1z}}]=[{self.qinput:.2f},{chi1z:.2f}]$'
 
     def _plot_split_timeseries(self, data_list, ylabel_list, figsize=(11, 8),
-                               height=0.28, v_gap=0.03, bottom_start=0.08):
+                               height=0.28, v_gap=0.03, bottom_start=0.08,
+                               save_path=None):
         """Plot time series split into pre-merger and post-merger panels.
 
         Args:
@@ -66,6 +67,11 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
             height (float): Height of each subplot row.
             v_gap (float): Vertical gap between rows.
             bottom_start (float): Bottom margin of the lowest row.
+            save_path (str or None): If provided, save figure to this path instead
+                of displaying it.
+
+        Returns:
+            matplotlib.figure.Figure: The figure object.
         """
         n_rows = len(data_list)
         fig = plt.figure(figsize=figsize)
@@ -110,9 +116,14 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
             else:
                 ax_right.tick_params(labelbottom=False)
 
-        plt.show()
+        if save_path is not None:
+            fig.savefig(save_path, dpi=300, bbox_inches='tight')
+        else:
+            plt.show()
 
-    def plot_mass_energy(self):
+        return fig
+
+    def plot_mass_energy(self, save_path=None):
         """
         Plot mass and energy evolution as a function of time.
 
@@ -127,13 +138,19 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
 
         All quantities are plotted in geometric units where G=c=1.
         Time is in units of total mass M.
+
+        Args:
+            save_path (str or None): If provided, save figure to this path.
+
+        Returns:
+            matplotlib.figure.Figure: The figure object.
         """
         data_list = [self.Moft, self.Eoft, self.E_dot, np.real(self.h_dot[(2, 2)])]
         ylabel_list = ['$M(t)$ $[M]$', '$E(t)$ $[M]$', '$\\dot{E}$ $[M]$', '$rh_{22}/M$']
-        self._plot_split_timeseries(data_list, ylabel_list, figsize=(11, 10),
-                                    height=0.20, v_gap=0.02)
+        return self._plot_split_timeseries(data_list, ylabel_list, figsize=(11, 10),
+                                           height=0.20, v_gap=0.02, save_path=save_path)
 
-    def plot_linear_momentum(self):
+    def plot_linear_momentum(self, save_path=None):
         """
         Plot linear momentum components as a function of time.
 
@@ -143,12 +160,18 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
         different phases of the evolution.
 
         The momentum components are in units of total mass M.
+
+        Args:
+            save_path (str or None): If provided, save figure to this path.
+
+        Returns:
+            matplotlib.figure.Figure: The figure object.
         """
         data_list = [self.Poft[0], self.Poft[1], self.Poft[2]]
         ylabel_list = ['$P_x(t)$', '$P_y(t)$', '$P_z(t)$']
-        self._plot_split_timeseries(data_list, ylabel_list)
+        return self._plot_split_timeseries(data_list, ylabel_list, save_path=save_path)
 
-    def plot_angular_momentum(self):
+    def plot_angular_momentum(self, save_path=None):
         """
         Plot angular momentum components as a function of time.
 
@@ -158,12 +181,18 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
         different phases of the evolution.
 
         The angular momentum components are in units of total mass squared M^2.
+
+        Args:
+            save_path (str or None): If provided, save figure to this path.
+
+        Returns:
+            matplotlib.figure.Figure: The figure object.
         """
         data_list = [self.Joft[0], self.Joft[1], self.Joft[2]]
         ylabel_list = ['$J_x(t)$', '$J_y(t)$', '$J_z(t)$']
-        self._plot_split_timeseries(data_list, ylabel_list)
+        return self._plot_split_timeseries(data_list, ylabel_list, save_path=save_path)
 
-    def plot_kick_velocity(self):
+    def plot_kick_velocity(self, save_path=None):
         """
         Plot the magnitude of kick velocity as a function of time.
 
@@ -173,8 +202,15 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
         and post-merger (t > -500M, 40% width) regions.
 
         Kick velocity is given in units of the speed of light c.
+
+        Args:
+            save_path (str or None): If provided, save figure to this path.
+
+        Returns:
+            matplotlib.figure.Figure: The figure object.
         """
         data_list = [self.kickoft]
         ylabel_list = ['$|v(t)|$ $[c]$']
-        self._plot_split_timeseries(data_list, ylabel_list, figsize=(11, 4),
-                                    height=0.65, v_gap=0.03, bottom_start=0.20)
+        return self._plot_split_timeseries(data_list, ylabel_list, figsize=(11, 4),
+                                           height=0.65, v_gap=0.03, bottom_start=0.20,
+                                           save_path=save_path)
