@@ -216,3 +216,25 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
         return self._plot_split_timeseries(data_list, ylabel_list, figsize=(11, 4),
                                            height=0.65, v_gap=0.03, bottom_start=0.20,
                                            save_path=save_path)
+
+    def plot_spin_vector(self, save_path: str | None = None) -> matplotlib.figure.Figure:
+        """
+        Plot dimensionless spin vector components as a function of time.
+
+        Creates a 3-row, 2-column figure showing the x, y, and z components of the
+        dimensionless spin vector. Each row is split into pre-merger (t <= -500M, 60% width)
+        and post-merger (t > -500M, 40% width) regions for better visualization of
+        different phases of the evolution.
+
+        The spin components are dimensionless (chi = S/M^2).
+
+        Args:
+            save_path (str or None): If provided, save figure to this path.
+
+        Returns:
+            matplotlib.figure.Figure: The figure object.
+        """
+        data_list = [self.spin_vector_oft[0], self.spin_vector_oft[1],
+                     self.spin_vector_oft[2]]
+        ylabel_list = ['$\\chi_x(t)$', '$\\chi_y(t)$', '$\\chi_z(t)$']
+        return self._plot_split_timeseries(data_list, ylabel_list, save_path=save_path)
