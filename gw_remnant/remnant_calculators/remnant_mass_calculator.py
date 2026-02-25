@@ -77,9 +77,12 @@ class RemnantMassCalculator(InitialEnergyMomenta):
         Remnant mass from arXiv:2301.07215
     """
     
-    def __init__(self, time, hdict, qinput, spin1_input=None, spin2_input=None, 
-                 ecc_input=None, E_initial=None, L_initial=None, 
-                 M_initial=1, use_filter=False):
+    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
+                 qinput: float, spin1_input: np.ndarray | list[float] | None = None,
+                 spin2_input: np.ndarray | list[float] | None = None,
+                 ecc_input: float | None = None, E_initial: float | None = None,
+                 L_initial: float | None = None,
+                 M_initial: float = 1, use_filter: bool = False) -> None:
         
         super().__init__(time, hdict, qinput, spin1_input, spin2_input,
                          ecc_input, E_initial, L_initial)

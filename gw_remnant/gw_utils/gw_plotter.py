@@ -15,6 +15,8 @@
 #
 #====================================================================================
 
+from __future__ import annotations
+
 import numpy as np
 
 from ..remnant_calculators.peak_luminosity_calculator import PeakLuminosityCalculator
@@ -123,7 +125,7 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
 
         return fig
 
-    def plot_mass_energy(self, save_path=None):
+    def plot_mass_energy(self, save_path: str | None = None) -> matplotlib.figure.Figure:
         """
         Plot mass and energy evolution as a function of time.
 
@@ -150,7 +152,7 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
         return self._plot_split_timeseries(data_list, ylabel_list, figsize=(11, 10),
                                            height=0.20, v_gap=0.02, save_path=save_path)
 
-    def plot_linear_momentum(self, save_path=None):
+    def plot_linear_momentum(self, save_path: str | None = None) -> matplotlib.figure.Figure:
         """
         Plot linear momentum components as a function of time.
 
@@ -171,7 +173,7 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
         ylabel_list = ['$P_x(t)$', '$P_y(t)$', '$P_z(t)$']
         return self._plot_split_timeseries(data_list, ylabel_list, save_path=save_path)
 
-    def plot_angular_momentum(self, save_path=None):
+    def plot_angular_momentum(self, save_path: str | None = None) -> matplotlib.figure.Figure:
         """
         Plot angular momentum components as a function of time.
 
@@ -192,7 +194,7 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
         ylabel_list = ['$J_x(t)$', '$J_y(t)$', '$J_z(t)$']
         return self._plot_split_timeseries(data_list, ylabel_list, save_path=save_path)
 
-    def plot_kick_velocity(self, save_path=None):
+    def plot_kick_velocity(self, save_path: str | None = None) -> matplotlib.figure.Figure:
         """
         Plot the magnitude of kick velocity as a function of time.
 

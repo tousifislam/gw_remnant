@@ -64,9 +64,13 @@ def _peak_time(t, mode):
     return _get_peaks_via_spline_fit(t, normSqrVsT)[0]
 
 
-def generate_nrhybsur3dq8(gwsurrogate_module, mass_ratio, chi1=[0, 0, 0], 
-                          chi2=[0, 0, 0], modes=None, times=None, 
-                          f_low=3e-3, dt=0.1):
+def generate_nrhybsur3dq8(gwsurrogate_module, mass_ratio: float,
+                          chi1: list[float] = [0, 0, 0],
+                          chi2: list[float] = [0, 0, 0],
+                          modes: list[tuple[int, int]] | None = None,
+                          times: np.ndarray | None = None,
+                          f_low: float = 3e-3,
+                          dt: float = 0.1) -> tuple[np.ndarray, dict[tuple[int, int], np.ndarray]]:
     """
     Generate NRHybSur3dq8 waveform.
     
@@ -140,7 +144,9 @@ def generate_nrhybsur3dq8(gwsurrogate_module, mass_ratio, chi1=[0, 0, 0],
     return times, h_out
 
 
-def generate_bhptnrsur1dq1e4(bhptsur_module, mass_ratio, modes=None, times=None):
+def generate_bhptnrsur1dq1e4(bhptsur_module, mass_ratio: float,
+                             modes: list[tuple[int, int]] | None = None,
+                             times: np.ndarray | None = None) -> tuple[np.ndarray, dict[tuple[int, int], np.ndarray]]:
     """
     Generate BHPTNRSur1dq1e4 waveform.
     
@@ -205,7 +211,9 @@ def generate_bhptnrsur1dq1e4(bhptsur_module, mass_ratio, modes=None, times=None)
     return times, h
 
 
-def generate_bhptnrsur2dq1e3(bhptsur_module, mass_ratio, spin, modes=None, times=None):
+def generate_bhptnrsur2dq1e3(bhptsur_module, mass_ratio: float, spin: float,
+                             modes: list[tuple[int, int]] | None = None,
+                             times: np.ndarray | None = None) -> tuple[np.ndarray, dict[tuple[int, int], np.ndarray]]:
     """
     Generate BHPTNRSur2dq1e3 waveform.
 
@@ -272,9 +280,11 @@ def generate_bhptnrsur2dq1e3(bhptsur_module, mass_ratio, spin, modes=None, times
     return times, h
 
 
-def compute_nrsur3dq8_remnant(surfinbh_module, mass_ratio, chi1=[0, 0, 0], 
-                              chi2=[0, 0, 0], fit_name='NRSur3dq8Remnant',
-                              print_output=True):
+def compute_nrsur3dq8_remnant(surfinbh_module, mass_ratio: float,
+                              chi1: list[float] = [0, 0, 0],
+                              chi2: list[float] = [0, 0, 0],
+                              fit_name: str = 'NRSur3dq8Remnant',
+                              print_output: bool = True) -> dict[str, float | np.ndarray]:
     """
     Compute remnant properties using NRSur3dq8Remnant surrogate.
     

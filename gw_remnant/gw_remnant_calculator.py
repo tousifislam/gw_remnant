@@ -18,6 +18,8 @@
 from __future__ import annotations
 __author__ = "Tousif Islam"
 
+import numpy as np
+
 from .remnant_calculators.initial_energy_momenta import InitialEnergyMomenta
 from .remnant_calculators.peak_luminosity_calculator import PeakLuminosityCalculator
 from .remnant_calculators.kick_velocity_calculator import LinearMomentumCalculator
@@ -105,13 +107,16 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
         >>> calc.plot_mass_energy()
     """
     
-    def __init__(self, time, hdict, qinput, spin1_input=None, spin2_input=None, 
-                 ecc_input=None, E_initial=None, L_initial=None, 
-                 M_initial=1, use_filter=False):
-        super().__init__(time, hdict, qinput, spin1_input, spin2_input, 
+    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
+                 qinput: float, spin1_input: np.ndarray | list[float] | None = None,
+                 spin2_input: np.ndarray | list[float] | None = None,
+                 ecc_input: float | None = None, E_initial: float | None = None,
+                 L_initial: float | None = None,
+                 M_initial: float = 1, use_filter: bool = False) -> None:
+        super().__init__(time, hdict, qinput, spin1_input, spin2_input,
                          ecc_input, E_initial, L_initial, M_initial, use_filter)
-        
-    def get_remnant_properties(self):
+
+    def get_remnant_properties(self) -> dict[str, float]:
         """
         Return remnant properties as a dictionary.
 
@@ -139,7 +144,7 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
             'peak_kick': self.peak_kick,
         }
 
-    def print_remnants(self):
+    def print_remnants(self) -> None:
         """
         Print summary of remnant properties.
 

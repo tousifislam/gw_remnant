@@ -63,8 +63,11 @@ class InitialEnergyMomenta:
         L_initial (float): Initial orbital angular momentum
     """
     
-    def __init__(self, time, hdict, qinput, spin1_input=None, spin2_input=None,
-                 ecc_input=None, E_initial=None, L_initial=None):
+    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
+                 qinput: float, spin1_input: np.ndarray | list[float] | None = None,
+                 spin2_input: np.ndarray | list[float] | None = None,
+                 ecc_input: float | None = None, E_initial: float | None = None,
+                 L_initial: float | None = None) -> None:
 
         # --- Input validation ---
         self._validate_inputs(time, hdict, qinput, spin1_input, spin2_input, ecc_input)

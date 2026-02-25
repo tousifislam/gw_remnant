@@ -66,11 +66,14 @@ class PeakLuminosityCalculator(RemnantMassCalculator):
         Peak luminosity definition from arXiv:2010.00120, Eq. (1)
     """
     
-    def __init__(self, time, hdict, qinput, spin1_input=None, spin2_input=None, 
-                 ecc_input=None, E_initial=None, L_initial=None, 
-                 M_initial=1, use_filter=False):
-        
-        super().__init__(time, hdict, qinput, spin1_input, spin2_input, 
+    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
+                 qinput: float, spin1_input: np.ndarray | list[float] | None = None,
+                 spin2_input: np.ndarray | list[float] | None = None,
+                 ecc_input: float | None = None, E_initial: float | None = None,
+                 L_initial: float | None = None,
+                 M_initial: float = 1, use_filter: bool = False) -> None:
+
+        super().__init__(time, hdict, qinput, spin1_input, spin2_input,
                          ecc_input, E_initial, L_initial, M_initial, use_filter)
         self.L_peak = self._compute_peak_luminosity()
     
