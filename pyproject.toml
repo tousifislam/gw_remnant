@@ -56,5 +56,8 @@ Homepage = "https://github.com/tousifislam/gw_remnant"
 "Bug Reports" = "https://github.com/tousifislam/gw_remnant/issues"
 Source = "https://github.com/tousifislam/gw_remnant"
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [tool.setuptools.packages.find]
 include = ["gw_remnant*"]
