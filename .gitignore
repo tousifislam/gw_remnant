@@ -26,6 +26,9 @@ htmlcov/
 *.swp
 *.swo
 
+# Sphinx documentation
+docs/_build/
+
 # OS
 .DS_Store
 Thumbs.db
