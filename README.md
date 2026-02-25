@@ -77,6 +77,36 @@ Example notebooks are provided in the [`tutorials/`](tutorials/) directory:
 
 These are also rendered in the [online documentation](https://tousifislam.github.io/gw_remnant/tutorials/index.html).
 
+## Repository Structure
+```
+gw_remnant/
+├── gw_remnant/                        # Main package directory
+│   ├── __init__.py                    # Package initialization
+│   ├── gw_remnant_calculator.py       # Main calculator class
+│   ├── gw_waveform_generator.py       # Waveform generation utilities
+│   │
+│   ├── gw_utils/                      # Utility functions
+│   │   ├── __init__.py
+│   │   ├── waveform_generator.py      # Waveform generation helpers
+│   │   └── gw_plotter.py              # Plotting utilities
+│   │
+│   └── remnant_calculators/           # Remnant property calculators
+│       ├── __init__.py
+│       ├── remnant_mass_calculator.py
+│       ├── remnant_spin_calculator.py
+│       ├── kick_velocity_calculator.py
+│       ├── peak_luminosity_calculator.py
+│       └── initial_energy_momenta.py
+│
+├── docs/                              # Sphinx documentation source
+├── tutorials/                         # Example notebooks and tutorials
+├── tests/                             # Unit tests
+├── pyproject.toml                     # Packaging configuration
+├── README.md                          # This file
+├── LICENSE                            # License information
+└── .gitignore                         # Git ignore rules
+```
+
 ## BHPTNRremnant
 
 `gw_remnant` has been used in developing an NR-tuned perturbation-based remnant model that provides faithful estimates of the remnant properties for binaries with mass ratios ranging from `q=3` to `q=1000`.
