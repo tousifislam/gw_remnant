@@ -51,8 +51,9 @@ class TestRemnantValues:
 class TestAPI:
     EXPECTED_KEYS = {
         "mass_ratio", "M_initial", "E_rad", "L_peak",
-        "remnant_mass", "remnant_spin", "remnant_kick",
-        "remnant_kick_kmps", "peak_kick",
+        "remnant_mass", "remnant_spin",
+        "remnant_spin_x", "remnant_spin_y", "remnant_spin_z",
+        "remnant_kick", "remnant_kick_kmps", "peak_kick",
     }
 
     def test_get_remnant_properties_keys(self, q8_calc):
@@ -69,6 +70,27 @@ class TestAPI:
 # ---------------------------------------------------------------------------
 # Relative-mode test (E_initial=0, L_initial=0)
 # ---------------------------------------------------------------------------
+
+class TestSpinVector:
+    def test_spin_vector_shape(self, q8_calc):
+        """spin_vector_oft should be (3, N) and remnant_spin_vector should be (3,)."""
+        assert q8_calc.spin_vector_oft.shape[0] == 3
+        assert q8_calc.spin_vector_oft.shape[1] == len(q8_calc.time)
+        assert q8_calc.remnant_spin_vector.shape == (3,)
+
+    def test_spin_z_matches_scalar(self, q8_calc):
+        """z-component of remnant_spin_vector should match scalar remnant_spin."""
+        assert q8_calc.remnant_spin_vector[2] == pytest.approx(q8_calc.remnant_spin)
+
+    def test_nonspinning_xy_near_zero(self, q8_calc):
+        """For q=8 non-spinning, x and y spin components should be near zero."""
+        assert q8_calc.remnant_spin_vector[0] == pytest.approx(0.0, abs=1e-3)
+        assert q8_calc.remnant_spin_vector[1] == pytest.approx(0.0, abs=1e-3)
+
+    def test_spin_z_matches_reference(self, q8_calc):
+        """z-component should match the known reference value."""
+        assert q8_calc.remnant_spin_vector[2] == pytest.approx(REF["remnant_spin"], abs=1e-4)
+
 
 class TestRelativeMode:
     def test_relative_mode(self, q8_nr_data):

@@ -84,8 +84,10 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
         remnant_kick (float): Final kick velocity magnitude
         J_dot (np.ndarray): Time derivative of angular momentum vector [3 x N_times]
         Joft (np.ndarray): Angular momentum vector as a function of time [3 x N_times]
-        spinoft (np.ndarray): Dimensionless spin magnitude as a function of time
-        remnant_spin (float): Final remnant dimensionless spin magnitude
+        spinoft (np.ndarray): Dimensionless spin z-component as a function of time
+        remnant_spin (float): Final remnant dimensionless spin z-component
+        spin_vector_oft (np.ndarray): Dimensionless spin vector [3 x N_times] (x, y, z)
+        remnant_spin_vector (np.ndarray): Final remnant dimensionless spin vector (3,)
         L_peak (float): Peak luminosity
         peak_kick (float): Peak kick velocity
     
@@ -127,7 +129,10 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
                 - 'E_rad': Total radiated energy
                 - 'L_peak': Peak luminosity
                 - 'remnant_mass': Final remnant mass
-                - 'remnant_spin': Final dimensionless spin
+                - 'remnant_spin': Final dimensionless spin (z-component)
+                - 'remnant_spin_x': Final dimensionless spin x-component
+                - 'remnant_spin_y': Final dimensionless spin y-component
+                - 'remnant_spin_z': Final dimensionless spin z-component
                 - 'remnant_kick': Final kick velocity in units of c
                 - 'remnant_kick_kmps': Final kick velocity in km/s
                 - 'peak_kick': Peak kick velocity in units of c
@@ -139,6 +144,9 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
             'L_peak': self.L_peak,
             'remnant_mass': self.remnant_mass,
             'remnant_spin': self.remnant_spin,
+            'remnant_spin_x': self.remnant_spin_vector[0],
+            'remnant_spin_y': self.remnant_spin_vector[1],
+            'remnant_spin_z': self.remnant_spin_vector[2],
             'remnant_kick': self.remnant_kick,
             'remnant_kick_kmps': self.remnant_kick_kmps,
             'peak_kick': self.peak_kick,
@@ -161,6 +169,8 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
         print(f"Peak luminosity               : {self.L_peak:.8f}")
         print(f"Remnant mass                  : {self.remnant_mass:.8f} M")
         print(f"Remnant spin (dimensionless)  : {self.remnant_spin:.8f}")
+        print(f"Remnant spin vector (x,y,z)  : ({self.remnant_spin_vector[0]:.8f}, "
+              f"{self.remnant_spin_vector[1]:.8f}, {self.remnant_spin_vector[2]:.8f})")
         print(f"Remnant kick velocity         : {self.remnant_kick:.8f} c")
         print(f"Remnant kick velocity         : {self.remnant_kick_kmps:.2f} km/s")
         print("=" * 50)

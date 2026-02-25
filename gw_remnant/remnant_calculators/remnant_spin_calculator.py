@@ -62,8 +62,10 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
     Attributes:
         J_dot (np.ndarray): Angular momentum flux vector [3 x N_times] in units of M^2
         Joft (np.ndarray): Cumulative radiated angular momentum [3 x N_times] in units of M^2
-        spinoft (np.ndarray): Dimensionless spin magnitude as a function of time
-        remnant_spin (float): Final remnant dimensionless spin magnitude
+        spinoft (np.ndarray): Dimensionless spin z-component as a function of time
+        remnant_spin (float): Final remnant dimensionless spin z-component
+        spin_vector_oft (np.ndarray): Dimensionless spin vector [3 x N_times] (x, y, z components)
+        remnant_spin_vector (np.ndarray): Final remnant dimensionless spin vector (3,)
     
     Inherits From:
         LinearMomentumCalculator: Provides linear momentum calculations and _read_dhdt_dict method
@@ -90,6 +92,8 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
         self.Joft = self._compute_Joft()
         self.spinoft = self._compute_spin_evolution()
         self.remnant_spin = self._compute_remnant_spin()
+        self.spin_vector_oft = self._compute_spin_vector_evolution()
+        self.remnant_spin_vector = self._compute_remnant_spin_vector()
         
     def _coeff_f(self, l, m):
         """
@@ -266,5 +270,55 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
         
         # Dimensionless remnant spin
         remnant_spin = J_final_z / self.remnant_mass**2
-        
+
         return remnant_spin
+
+    def _compute_spin_vector_evolution(self) -> np.ndarray:
+        """
+        Compute 3D dimensionless spin vector evolution of the system.
+
+        Calculates the dimensionless spin vector as a function of time:
+        - chi_x(t) = (S1_x + S2_x - J_rad,x(t)) / M(t)^2
+        - chi_y(t) = (S1_y + S2_y - J_rad,y(t)) / M(t)^2
+        - chi_z(t) = (L_initial + S1_z + S2_z - J_rad,z(t)) / M(t)^2
+
+        Note: L_initial only enters the z-component (orbital angular momentum
+        is along z in the standard frame).
+
+        Returns:
+            np.ndarray: Dimensionless spin vector [3 x N_times].
+        """
+        m1 = self.qinput / (1 + self.qinput)
+        m2 = 1 / (1 + self.qinput)
+
+        S1 = np.array(self.spin1_input) * m1**2
+        S2 = np.array(self.spin2_input) * m2**2
+
+        J_x_t = S1[0] + S2[0] - self.Joft[0]
+        J_y_t = S1[1] + S2[1] - self.Joft[1]
+        J_z_t = self.L_initial + S1[2] + S2[2] - self.Joft[2]
+
+        M2 = self.Moft**2
+        return np.array([J_x_t / M2, J_y_t / M2, J_z_t / M2])
+
+    def _compute_remnant_spin_vector(self) -> np.ndarray:
+        """
+        Compute final 3D dimensionless spin vector of the remnant black hole.
+
+        Uses remnant_mass (not Moft[-1]) for consistency with _compute_remnant_spin().
+
+        Returns:
+            np.ndarray: Final remnant dimensionless spin vector of shape (3,).
+        """
+        m1 = self.qinput / (1 + self.qinput)
+        m2 = 1 / (1 + self.qinput)
+
+        S1 = np.array(self.spin1_input) * m1**2
+        S2 = np.array(self.spin2_input) * m2**2
+
+        J_x = S1[0] + S2[0] - self.Joft[0, -1]
+        J_y = S1[1] + S2[1] - self.Joft[1, -1]
+        J_z = self.L_initial + S1[2] + S2[2] - self.Joft[2, -1]
+
+        Mf2 = self.remnant_mass**2
+        return np.array([J_x / Mf2, J_y / Mf2, J_z / Mf2])
