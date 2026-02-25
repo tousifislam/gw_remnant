@@ -66,11 +66,14 @@ class PeakLuminosityCalculator(RemnantMassCalculator):
         Peak luminosity definition from arXiv:2010.00120, Eq. (1)
     """
     
-    def __init__(self, time, hdict, qinput, spin1_input=None, spin2_input=None, 
-                 ecc_input=None, E_initial=None, L_initial=None, 
-                 M_initial=1, use_filter=False):
-        
-        super().__init__(time, hdict, qinput, spin1_input, spin2_input, 
+    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
+                 qinput: float, spin1_input: np.ndarray | list[float] | None = None,
+                 spin2_input: np.ndarray | list[float] | None = None,
+                 ecc_input: float | None = None, E_initial: float | None = None,
+                 L_initial: float | None = None,
+                 M_initial: float = 1, use_filter: bool = False) -> None:
+
+        super().__init__(time, hdict, qinput, spin1_input, spin2_input,
                          ecc_input, E_initial, L_initial, M_initial, use_filter)
         self.L_peak = self._compute_peak_luminosity()
     
@@ -123,10 +126,10 @@ class PeakLuminosityCalculator(RemnantMassCalculator):
         """
         # Find discrete maximum
         discrete_peak_index = np.argmax(self.E_dot)
-        
-        # Select ±10 points around the discrete peak
-        indx_begin = discrete_peak_index - 10
-        indx_end = discrete_peak_index + 10
+
+        # Select ±10 points around the discrete peak, clamped to array bounds
+        indx_begin = max(0, discrete_peak_index - 10)
+        indx_end = min(len(self.time), discrete_peak_index + 10)
         time_cut = self.time[indx_begin:indx_end]
         L_cut = self.E_dot[indx_begin:indx_end]
         

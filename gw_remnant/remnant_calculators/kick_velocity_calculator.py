@@ -73,15 +73,18 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         Kick velocity formulas from arXiv:1802.04276 and arXiv:0707.4654
     """
     
-    def __init__(self, time, hdict, qinput, spin1_input=None, spin2_input=None, 
-                 ecc_input=None, E_initial=None, L_initial=None, 
-                 M_initial=1, use_filter=False):
-        
-        super().__init__(time, hdict, qinput, spin1_input, spin2_input, 
+    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
+                 qinput: float, spin1_input: np.ndarray | list[float] | None = None,
+                 spin2_input: np.ndarray | list[float] | None = None,
+                 ecc_input: float | None = None, E_initial: float | None = None,
+                 L_initial: float | None = None,
+                 M_initial: float = 1, use_filter: bool = False) -> None:
+
+        super().__init__(time, hdict, qinput, spin1_input, spin2_input,
                          ecc_input, E_initial, L_initial, M_initial, use_filter)
-        
+
         self.lmax = self._get_lmax()
-        self.P_dot = np.array([self._compute_dPxdt(), self._compute_dPydt(), 
+        self.P_dot = np.array([self._compute_dPxdt(), self._compute_dPydt(),
                                self._compute_dPzdt()])
         self.Poft = self._compute_Poft()
         self.voft = self._compute_voft()
@@ -273,13 +276,14 @@ class LinearMomentumCalculator(RemnantMassCalculator):
             [np.ndarray]: Radiated linear momentum vector [3 x N_times] in units of M.
         """
         try:
-            Pxoft = integrate.cumtrapz(self.P_dot[0], self.time, initial=0.0)
-            Pyoft = integrate.cumtrapz(self.P_dot[1], self.time, initial=0.0)
-            Pzoft = integrate.cumtrapz(self.P_dot[2], self.time, initial=0.0)
-        except:
             Pxoft = integrate.cumulative_trapezoid(self.P_dot[0], self.time, initial=0.0)
             Pyoft = integrate.cumulative_trapezoid(self.P_dot[1], self.time, initial=0.0)
             Pzoft = integrate.cumulative_trapezoid(self.P_dot[2], self.time, initial=0.0)
+        except AttributeError:
+            # scipy < 1.14: cumulative_trapezoid was named cumtrapz
+            Pxoft = integrate.cumtrapz(self.P_dot[0], self.time, initial=0.0)
+            Pyoft = integrate.cumtrapz(self.P_dot[1], self.time, initial=0.0)
+            Pzoft = integrate.cumtrapz(self.P_dot[2], self.time, initial=0.0)
         return np.array([Pxoft, Pyoft, Pzoft])
     
     def _compute_voft(self):
@@ -306,7 +310,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         Returns:
             [np.ndarray]: Kick velocity magnitude as a function of time in units of c.
         """
-        return np.array([np.linalg.norm(self.voft[i]) for i in range(len(self.time))])
+        return np.linalg.norm(self.voft, axis=1)
 
     def _compute_kickoft_in_kmps(self):
         """
@@ -342,11 +346,8 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         # Quadratic fit to 5 points, subtracting t[index] for numerical stability
         testTimes = t[index - 2:index + 3] - t[index]
         testFuncs = func[index - 2:index + 3]
-        xVecs = np.array([np.ones(5), testTimes, testTimes**2])
-        invMat = np.linalg.inv(np.array([[v1.dot(v2) for v1 in xVecs] 
-                                         for v2 in xVecs]))
-        yVec = np.array([testFuncs.dot(v1) for v1 in xVecs])
-        coefs = np.array([yVec.dot(v1) for v1 in invMat])
+        A = np.column_stack([np.ones(5), testTimes, testTimes**2])
+        coefs, _, _, _ = np.linalg.lstsq(A, testFuncs, rcond=None)
         
         return t[index] - coefs[1] / (2.0 * coefs[2]), coefs[0] - coefs[1]**2 / 4 / coefs[2]
     

@@ -63,55 +63,120 @@ class InitialEnergyMomenta:
         L_initial (float): Initial orbital angular momentum
     """
     
-    def __init__(self, time, hdict, qinput, spin1_input=None, spin2_input=None, 
-                 ecc_input=None, E_initial=None, L_initial=None):
-        
+    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
+                 qinput: float, spin1_input: np.ndarray | list[float] | None = None,
+                 spin2_input: np.ndarray | list[float] | None = None,
+                 ecc_input: float | None = None, E_initial: float | None = None,
+                 L_initial: float | None = None) -> None:
+
+        # --- Input validation ---
+        self._validate_inputs(time, hdict, qinput, spin1_input, spin2_input, ecc_input)
+
         # read waveforms
         self.time = time
         self.hdict = hdict
         # Ensure negative m modes are present using symmetry relation
-        for mode in self.hdict.keys():
-            if mode[1] == 0:
-                pass
-            else:
-                if (mode[0], mode[1]) in self.hdict.keys():
-                    pass
-                else:
-                    self.hdict[(mode[0], -mode[1])] = (-1)**mode[0] * np.conjugate(self.hdict[mode])
-        
+        for mode in list(self.hdict.keys()):
+            if mode[1] != 0 and (mode[0], -mode[1]) not in self.hdict:
+                self.hdict[(mode[0], -mode[1])] = (-1)**mode[0] * np.conjugate(self.hdict[mode])
+
         # Mass ratio
-        self.qinput = qinput        
-        
+        self.qinput = qinput
+
         # Spin vectors : primary black hole
         if spin1_input is None:
             self.spin1_input = np.array([0.0, 0.0, 0.0])
         else:
             self.spin1_input = np.array(spin1_input)
-        
+
         # Spin vectors : secondary black hole
         if spin2_input is None:
             self.spin2_input = np.array([0.0, 0.0, 0.0])
         else:
             self.spin2_input = np.array(spin2_input)
-            
+
         # Eccentricity
         if ecc_input is None:
-            self.ecc_input = 0.0 
+            self.ecc_input = 0.0
         else:
             self.ecc_input = ecc_input
+
+        # Cache PN expansion parameter and symmetric mass ratio (used by all PN methods)
+        self._x0, self._nu = self._compute_initial_pn_parameter()
 
         # Initial energy
         if E_initial is None:
             self.E_initial = self._E0_from_PN()
         else:
             self.E_initial = E_initial
-            
+
         # Initial angular momentum
         if L_initial is None:
             self.L_initial = self._L0_from_PN_nonspinning()
         else:
             self.L_initial = L_initial
         
+    def _compute_initial_pn_parameter(self):
+        """Compute the PN expansion parameter x = (M*omega)^(2/3) and symmetric mass ratio nu
+        from the initial orbital frequency of the (2,2) mode.
+
+        Returns:
+            tuple: (x0, nu) where x0 is the PN parameter at the start of the waveform
+                and nu is the symmetric mass ratio.
+        """
+        orb_phase = 0.5 * gwtools.phase(self.hdict[(2, 2)])
+        orb_frequency = abs(np.gradient(orb_phase, edge_order=2) /
+                           np.gradient(self.time, edge_order=2))
+        x0 = orb_frequency[0]**(2/3)
+        nu = gwtools.q_to_nu(self.qinput)
+        return x0, nu
+
+    @staticmethod
+    def _validate_inputs(time, hdict, qinput, spin1_input, spin2_input, ecc_input):
+        """Validate user inputs and raise ValueError on invalid data."""
+        # Time array
+        if len(time) < 2:
+            raise ValueError("Time array must have at least 2 elements.")
+        dt = np.diff(time)
+        if np.any(dt <= 0):
+            raise ValueError("Time array must be monotonically increasing.")
+
+        # Required (2,2) mode
+        if (2, 2) not in hdict:
+            raise ValueError(
+                "Waveform dictionary must contain the (2,2) mode. "
+                f"Available modes: {list(hdict.keys())}"
+            )
+
+        # Mass ratio
+        if qinput < 1:
+            raise ValueError(
+                f"Mass ratio q must be >= 1 (q = m1/m2 with m1 >= m2), got q={qinput}."
+            )
+
+        # Spin magnitudes
+        for label, spin in [("spin1_input", spin1_input), ("spin2_input", spin2_input)]:
+            if spin is not None:
+                spin_arr = np.asarray(spin)
+                if spin_arr.shape != (3,):
+                    raise ValueError(
+                        f"{label} must be a 3-component vector [sx, sy, sz], "
+                        f"got shape {spin_arr.shape}."
+                    )
+                mag = np.linalg.norm(spin_arr)
+                if mag > 1.0:
+                    raise ValueError(
+                        f"{label} magnitude must be <= 1 for a black hole, "
+                        f"got |chi| = {mag:.4f}."
+                    )
+
+        # Eccentricity
+        if ecc_input is not None:
+            if ecc_input < 0 or ecc_input >= 1:
+                raise ValueError(
+                    f"Eccentricity must satisfy 0 <= e < 1, got e={ecc_input}."
+                )
+
     def _E0_from_PN(self):
         """
         Compute initial energy using post-Newtonian expressions.
@@ -128,20 +193,13 @@ class InitialEnergyMomenta:
         Returns:
             [float]: Initial orbital energy in units of total mass M.
         """
-        orb_phase = 0.5 * gwtools.phase(self.hdict[(2, 2)])
-        orb_frequency = abs(np.gradient(orb_phase, edge_order=2) / 
-                           np.gradient(self.time, edge_order=2))
-        x = orb_frequency[0]**(2/3)
-        
-        nu = gwtools.q_to_nu(self.qinput)
-        delta = gwtools.q_to_delta(self.qinput) 
-        
+        x = self._x0
+        nu = self._nu
+        delta = gwtools.q_to_delta(self.qinput)
+
         chi_s = (self.spin1_input + self.spin2_input) / 2
-        chi_a = (self.spin1_input - self.spin2_input) / 2 
-        L_N = np.array([0, 0, 1]) 
-        
-        # Euler's constant
-        gamma_E = 0.57721566490153286060
+        chi_a = (self.spin1_input - self.spin2_input) / 2
+        L_N = np.array([0, 0, 1])
         
         # 1.5PN and 2.5PN spinning corrections
         term_15 = ((8/3 - 4/3 * nu) * np.dot(chi_s, L_N) + 
@@ -180,7 +238,7 @@ class InitialEnergyMomenta:
 
         # 4PN circular non-spinning
         term_4 = (-3969/128 + (-123671/5760 + 9037/1536 * np.pi**2 + 
-                   896/15 * gamma_E + 448/15 * np.log(16 * x)) * nu +
+                   896/15 * np.euler_gamma + 448/15 * np.log(16 * x)) * nu +
                   (-498449/3456 + 3157/576 * np.pi**2) * nu**2 +
                   301/1728 * nu**3 + 77/31104 * nu**4) * x**4
 
@@ -215,19 +273,9 @@ class InitialEnergyMomenta:
         Returns:
             [float]: Initial orbital energy in units of total mass M.
         """
+        x = self._x0
+        nu = self._nu
 
-        # Different choices for initial 
-        # Obtain PN expansion parameter x = (M*omega)^(2/3)
-        orb_phase = 0.5 * gwtools.phase(self.hdict[(2, 2)])
-        orb_frequency = abs(np.gradient(orb_phase, edge_order=2) / 
-                           np.gradient(self.time, edge_order=2))
-        
-        x = orb_frequency[0]**(2/3)
-        nu = gwtools.q_to_nu(self.qinput)
-        
-        # Euler's constant
-        gamma_E = 0.57721566490153286060
-        
         # Standard PN terms (1PN-4PN)
         # Eq. (3) of https://arxiv.org/pdf/2304.11185.pdf
         term_1 = (-3/4 - nu/12) * x
@@ -235,7 +283,7 @@ class InitialEnergyMomenta:
         term_3 = ((-675/64 + (34445/576 - 205*np.pi**2/96)*nu - 
                   144*nu**2/96 - 35*nu**3/5184) * x**3)
         term_4 = ((-3969/128 + (-123671/5760 + 9037/1536 * np.pi**2 + 
-                   896/15 * gamma_E + 448/15 * np.log(16 * x)) * nu +
+                   896/15 * np.euler_gamma + 448/15 * np.log(16 * x)) * nu +
                   (-498449/3456 + 3157/576 * np.pi**2) * nu**2 +
                   301/1728 * nu**3 + 77/31104 * nu**4) * x**4)
         
@@ -270,13 +318,9 @@ class InitialEnergyMomenta:
         Returns:
             [float]: Initial orbital energy in units of total mass M.
         """
-        # Obtain PN expansion parameter x = (M*omega)^(2/3)
-        orb_phase = 0.5 * gwtools.phase(self.hdict[(2, 2)])
-        orb_frequency = abs(np.gradient(orb_phase, edge_order=2) / 
-                           np.gradient(self.time, edge_order=2))
-        x = orb_frequency[0]**(2/3)
-        nu = gwtools.q_to_nu(self.qinput)
-        
+        x = self._x0
+        nu = self._nu
+
         # 1PN term with eccentricity corrections up to e^2
         # Eq. (6.5a) of https://arxiv.org/pdf/0908.3854.pdf
         term1 = (x / (1 - self.ecc_input**2) * 
@@ -328,18 +372,12 @@ class InitialEnergyMomenta:
         Returns:
             [float]: Initial orbital energy in units of total mass M.
         """
-        orb_phase = 0.5 * gwtools.phase(self.hdict[(2, 2)])
-        orb_frequency = abs(np.gradient(orb_phase, edge_order=2) / 
-                           np.gradient(self.time, edge_order=2))
-        x = orb_frequency[0]**(2/3)
-        nu = gwtools.q_to_nu(self.qinput)
-        delta = gwtools.q_to_delta(self.qinput) 
+        x = self._x0
+        nu = self._nu
+        delta = gwtools.q_to_delta(self.qinput)
 
-        # symmetric spin
-        chi_s = (self.chi1 + self.chi2) / 2
-        # anti symmetric spin
-        chi_a = (self.chi1 - self.chi2) / 2 
-        # assume total angular momentum direction to be along the z axis
+        chi_s = (self.spin1_input + self.spin2_input) / 2
+        chi_a = (self.spin1_input - self.spin2_input) / 2
         L_N = np.array([0, 0, 1]) 
                 
         term_1 = (-3/4 - nu/12) * x
@@ -381,13 +419,9 @@ class InitialEnergyMomenta:
         Returns:
             [float]: Initial orbital angular momentum magnitude in units of M^2.
         """
-        # Obtain PN expansion parameter x = (M*omega)^(2/3)
-        orb_phase = 0.5 * gwtools.phase(self.hdict[(2, 2)])
-        orb_frequency = abs(np.gradient(orb_phase, edge_order=2) / 
-                           np.gradient(self.time, edge_order=2))
-        x = orb_frequency[0]**(2/3)
-        nu = gwtools.q_to_nu(self.qinput)
-        
+        x = self._x0
+        nu = self._nu
+
         # Standard PN terms (1PN-3PN)
         # Eq. (2.36) of https://arxiv.org/pdf/1111.5378.pdf
         term_1 = (3/2 + nu/6) * x
@@ -436,13 +470,9 @@ class InitialEnergyMomenta:
         Returns:
             [float]: Initial orbital angular momentum magnitude in units of M^2.
         """
-        # Obtain PN expansion parameter x = (M*omega)^(2/3)
-        orb_phase = 0.5 * gwtools.phase(self.hdict[(2, 2)])
-        orb_frequency = abs(np.gradient(orb_phase, edge_order=2) / 
-                           np.gradient(self.time, edge_order=2))
-        x = orb_frequency[0]**(2/3)
-        nu = gwtools.q_to_nu(self.qinput)
-        
+        x = self._x0
+        nu = self._nu
+
         # Use v = nu for symmetric mass ratio (as commonly done in PN expansions)
         v = nu
         e_t = self.ecc_input

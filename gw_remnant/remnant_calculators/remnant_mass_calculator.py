@@ -77,13 +77,19 @@ class RemnantMassCalculator(InitialEnergyMomenta):
         Remnant mass from arXiv:2301.07215
     """
     
-    def __init__(self, time, hdict, qinput, spin1_input=None, spin2_input=None, 
-                 ecc_input=None, E_initial=None, L_initial=None, 
-                 M_initial=1, use_filter=False):
+    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
+                 qinput: float, spin1_input: np.ndarray | list[float] | None = None,
+                 spin2_input: np.ndarray | list[float] | None = None,
+                 ecc_input: float | None = None, E_initial: float | None = None,
+                 L_initial: float | None = None,
+                 M_initial: float = 1, use_filter: bool = False) -> None:
         
-        super().__init__(time, hdict, qinput, spin1_input, spin2_input, 
+        super().__init__(time, hdict, qinput, spin1_input, spin2_input,
                          ecc_input, E_initial, L_initial)
-    
+
+        if M_initial <= 0:
+            raise ValueError(f"M_initial must be positive, got {M_initial}.")
+
         self.use_filter = use_filter
         self.M_initial = M_initial
         self.h_dot = self._compute_dhdt()
@@ -111,15 +117,16 @@ class RemnantMassCalculator(InitialEnergyMomenta):
         
         if self.use_filter:
             # Mode-dependent smoothing parameters for spline filtering
-            sdict = {(2, 2): 0.01, (2, 1): 0.001, (3, 1): 0.00008, 
-                     (3, 2): 0.00008, (3, 3): 0.001, (4, 2): 0.00001, 
+            sdict = {(2, 2): 0.01, (2, 1): 0.001, (3, 1): 0.00008,
+                     (3, 2): 0.00008, (3, 3): 0.001, (4, 2): 0.00001,
                      (4, 3): 0.00001, (4, 4): 0.00001}
-                        
+            default_smoothing = 0.00001
+
             hdot_dict = {}
             for mode in self.hdict.keys():
                 # Interpolate waveform with smoothing
-                tmp = gwtools.interpolant_h(self.time, self.hdict[mode], 
-                                           s=sdict[(mode[0], abs(mode[1]))])
+                s_val = sdict.get((mode[0], abs(mode[1])), default_smoothing)
+                tmp = gwtools.interpolant_h(self.time, self.hdict[mode], s=s_val)
                 # Evaluate derivative of spline
                 hdot_dict[mode] = (splev(self.time, tmp[0], der=1) + 
                                   1j * splev(self.time, tmp[1], der=1))
@@ -168,10 +175,11 @@ class RemnantMassCalculator(InitialEnergyMomenta):
                 total mass M.
         """
         try:
-            E_rad = integrate.cumtrapz(self.E_dot, self.time, initial=0.0) + self.E_initial
-        except:
-            E_rad = integrate.cumulative_trapezoid(self.E_dot, self.time, 
+            E_rad = integrate.cumulative_trapezoid(self.E_dot, self.time,
                                                    initial=0.0) + self.E_initial
+        except AttributeError:
+            # scipy < 1.14: cumulative_trapezoid was named cumtrapz
+            E_rad = integrate.cumtrapz(self.E_dot, self.time, initial=0.0) + self.E_initial
         return E_rad
 
     def _compute_bondi_mass(self):

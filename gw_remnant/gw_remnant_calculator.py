@@ -18,6 +18,8 @@
 from __future__ import annotations
 __author__ = "Tousif Islam"
 
+import numpy as np
+
 from .remnant_calculators.initial_energy_momenta import InitialEnergyMomenta
 from .remnant_calculators.peak_luminosity_calculator import PeakLuminosityCalculator
 from .remnant_calculators.kick_velocity_calculator import LinearMomentumCalculator
@@ -82,8 +84,10 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
         remnant_kick (float): Final kick velocity magnitude
         J_dot (np.ndarray): Time derivative of angular momentum vector [3 x N_times]
         Joft (np.ndarray): Angular momentum vector as a function of time [3 x N_times]
-        spinoft (np.ndarray): Dimensionless spin magnitude as a function of time
-        remnant_spin (float): Final remnant dimensionless spin magnitude
+        spinoft (np.ndarray): Dimensionless spin z-component as a function of time
+        remnant_spin (float): Final remnant dimensionless spin z-component
+        spin_vector_oft (np.ndarray): Dimensionless spin vector [3 x N_times] (x, y, z)
+        remnant_spin_vector (np.ndarray): Final remnant dimensionless spin vector (3,)
         L_peak (float): Peak luminosity
         peak_kick (float): Peak kick velocity
     
@@ -105,16 +109,53 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
         >>> calc.plot_mass_energy()
     """
     
-    def __init__(self, time, hdict, qinput, spin1_input=None, spin2_input=None, 
-                 ecc_input=None, E_initial=None, L_initial=None, 
-                 M_initial=1, use_filter=False):
-        super().__init__(time, hdict, qinput, spin1_input, spin2_input, 
+    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
+                 qinput: float, spin1_input: np.ndarray | list[float] | None = None,
+                 spin2_input: np.ndarray | list[float] | None = None,
+                 ecc_input: float | None = None, E_initial: float | None = None,
+                 L_initial: float | None = None,
+                 M_initial: float = 1, use_filter: bool = False) -> None:
+        super().__init__(time, hdict, qinput, spin1_input, spin2_input,
                          ecc_input, E_initial, L_initial, M_initial, use_filter)
-        
-    def print_remnants(self):
+
+    def get_remnant_properties(self) -> dict[str, float]:
+        """
+        Return remnant properties as a dictionary.
+
+        Returns:
+            dict: Dictionary containing:
+                - 'mass_ratio': Mass ratio q = m1/m2
+                - 'M_initial': Initial total mass
+                - 'E_rad': Total radiated energy
+                - 'L_peak': Peak luminosity
+                - 'remnant_mass': Final remnant mass
+                - 'remnant_spin': Final dimensionless spin (z-component)
+                - 'remnant_spin_x': Final dimensionless spin x-component
+                - 'remnant_spin_y': Final dimensionless spin y-component
+                - 'remnant_spin_z': Final dimensionless spin z-component
+                - 'remnant_kick': Final kick velocity in units of c
+                - 'remnant_kick_kmps': Final kick velocity in km/s
+                - 'peak_kick': Peak kick velocity in units of c
+        """
+        return {
+            'mass_ratio': self.qinput,
+            'M_initial': self.M_initial,
+            'E_rad': self.E_rad,
+            'L_peak': self.L_peak,
+            'remnant_mass': self.remnant_mass,
+            'remnant_spin': self.remnant_spin,
+            'remnant_spin_x': self.remnant_spin_vector[0],
+            'remnant_spin_y': self.remnant_spin_vector[1],
+            'remnant_spin_z': self.remnant_spin_vector[2],
+            'remnant_kick': self.remnant_kick,
+            'remnant_kick_kmps': self.remnant_kick_kmps,
+            'peak_kick': self.peak_kick,
+        }
+
+    def print_remnants(self) -> None:
         """
         Print summary of remnant properties.
-        
+
         Displays key remnant quantities including mass ratio, initial mass,
         total radiated energy, peak luminosity, and final remnant mass, spin,
         and kick velocity. All quantities are printed in geometric units.
@@ -128,6 +169,8 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
         print(f"Peak luminosity               : {self.L_peak:.8f}")
         print(f"Remnant mass                  : {self.remnant_mass:.8f} M")
         print(f"Remnant spin (dimensionless)  : {self.remnant_spin:.8f}")
+        print(f"Remnant spin vector (x,y,z)  : ({self.remnant_spin_vector[0]:.8f}, "
+              f"{self.remnant_spin_vector[1]:.8f}, {self.remnant_spin_vector[2]:.8f})")
         print(f"Remnant kick velocity         : {self.remnant_kick:.8f} c")
         print(f"Remnant kick velocity         : {self.remnant_kick_kmps:.2f} km/s")
         print("=" * 50)

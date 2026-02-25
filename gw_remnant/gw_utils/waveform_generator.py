@@ -21,6 +21,10 @@ import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as spline
 import gwtools
 
+# Default modes and time grid shared across waveform generators
+DEFAULT_MODES = [(2, 2), (2, 1), (3, 1), (3, 2), (3, 3), (4, 2), (4, 3), (4, 4)]
+DEFAULT_TIMES = np.arange(-5000.0, 50.0, 0.1)
+
 
 def _get_peaks_via_spline_fit(t, func):
     """
@@ -60,9 +64,13 @@ def _peak_time(t, mode):
     return _get_peaks_via_spline_fit(t, normSqrVsT)[0]
 
 
-def generate_nrhybsur3dq8(gwsurrogate_module, mass_ratio, chi1=[0, 0, 0], 
-                          chi2=[0, 0, 0], modes=None, times=None, 
-                          f_low=3e-3, dt=0.1):
+def generate_nrhybsur3dq8(gwsurrogate_module, mass_ratio: float,
+                          chi1: list[float] = [0, 0, 0],
+                          chi2: list[float] = [0, 0, 0],
+                          modes: list[tuple[int, int]] | None = None,
+                          times: np.ndarray | None = None,
+                          f_low: float = 3e-3,
+                          dt: float = 0.1) -> tuple[np.ndarray, dict[tuple[int, int], np.ndarray]]:
     """
     Generate NRHybSur3dq8 waveform.
     
@@ -109,14 +117,13 @@ def generate_nrhybsur3dq8(gwsurrogate_module, mass_ratio, chi1=[0, 0, 0],
     if not 1 <= mass_ratio <= 10:
         raise ValueError(f"Mass ratio {mass_ratio} outside valid range [1, 10] "
                         f"for NRHybSur3dq8")
-    
+
     # Set defaults
     if modes is None:
-        modes = [(2, 2), (2, 1), (3, 1), (3, 2), (3, 3), (4, 2), (4, 3), (4, 4)]
-    
+        modes = list(DEFAULT_MODES)
     if times is None:
-        times = np.arange(-5000.0, 50.0, 0.1)
-    
+        times = DEFAULT_TIMES.copy()
+
     # Generate waveform
     t, h, dyn = gwsurrogate_module(mass_ratio, chi1, chi2, dt=dt, f_low=f_low)
     
@@ -137,7 +144,9 @@ def generate_nrhybsur3dq8(gwsurrogate_module, mass_ratio, chi1=[0, 0, 0],
     return times, h_out
 
 
-def generate_bhptnrsur1dq1e4(bhptsur_module, mass_ratio, modes=None, times=None):
+def generate_bhptnrsur1dq1e4(bhptsur_module, mass_ratio: float,
+                             modes: list[tuple[int, int]] | None = None,
+                             times: np.ndarray | None = None) -> tuple[np.ndarray, dict[tuple[int, int], np.ndarray]]:
     """
     Generate BHPTNRSur1dq1e4 waveform.
     
@@ -177,14 +186,13 @@ def generate_bhptnrsur1dq1e4(bhptsur_module, mass_ratio, modes=None, times=None)
     if not 1 <= mass_ratio <= 10000:
         raise ValueError(f"Mass ratio {mass_ratio} outside typical range [1, 10000] "
                         f"for BHPTNRSur1dq1e4")
-    
+
     # Set defaults
     if modes is None:
-        modes = [(2, 2), (2, 1), (3, 1), (3, 2), (3, 3), (4, 2), (4, 3), (4, 4)]
-    
+        modes = list(DEFAULT_MODES)
     if times is None:
-        times = np.arange(-5000.0, 50.0, 0.1)
-    
+        times = DEFAULT_TIMES.copy()
+
     # Generate waveform
     print("Generating BHPTNRSur1dq1e4 waveform...")
     t, h = bhptsur_module.generate_surrogate(q=mass_ratio, modes=modes, calibrated=True)
@@ -203,63 +211,65 @@ def generate_bhptnrsur1dq1e4(bhptsur_module, mass_ratio, modes=None, times=None)
     return times, h
 
 
-def generate_bhptnrsur2dq1e3(bhptsur_module, mass_ratio, spin, modes=None, times=None):
+def generate_bhptnrsur2dq1e3(bhptsur_module, mass_ratio: float, spin: float,
+                             modes: list[tuple[int, int]] | None = None,
+                             times: np.ndarray | None = None) -> tuple[np.ndarray, dict[tuple[int, int], np.ndarray]]:
     """
-    Generate BHPTNRSur1dq1e4 waveform.
-    
-    Generates waveform using the BHPTNRSur1dq1e4 surrogate model, which combines
-    black hole perturbation theory with numerical relativity for extreme and
-    intermediate mass ratio inspirals.
-    
+    Generate BHPTNRSur2dq1e3 waveform.
+
+    Generates waveform using the BHPTNRSur2dq1e3 surrogate model, which combines
+    black hole perturbation theory with numerical relativity for spinning
+    intermediate and extreme mass ratio inspirals.
+
     Args:
-        bhptsur_module: The BHPTNRSur1dq1e4 module imported by the user
-        mass_ratio (float): Mass ratio q = m1/m2, where m1 >= m2 (1 <= q <= 10000)
-        spin (float) : Dimensionless spin of the primary black hole (-0.8 <= spin <= 0.8)
+        bhptsur_module: The BHPTNRSur2dq1e3 module imported by the user
+        mass_ratio (float): Mass ratio q = m1/m2, where m1 >= m2 (1 <= q <= 1000)
+        spin (float): Dimensionless spin of the primary black hole (-0.8 <= spin <= 0.8)
         modes (list): List of (l,m) mode tuples to generate. If None, defaults to
             [(2,2), (2,1), (3,1), (3,2), (3,3), (4,2), (4,3), (4,4)]
         times (np.ndarray): Time array in geometric units (M). If None,
             defaults to np.arange(-5000.0, 50.0, 0.1)
-    
+
     Returns:
         [tuple]: (times, waveform_dict) where:
             - times: Time array aligned so peak is at t=0
             - waveform_dict: Dictionary {(l,m): h_lm(t)} with complex waveforms
-    
+
     Raises:
         ValueError: If mass_ratio is outside valid range
-    
+
     Example:
         >>> import sys
         >>> sys.path.append('/path/to/BHPTNRSurrogate/surrogates')
-        >>> import BHPTNRSur1dq1e4 as bhptsur
+        >>> import BHPTNRSur2dq1e3 as bhptsur
         >>> from gw_remnant.gw_utils import waveform_generator as wg
-        >>> 
-        >>> times, h = wg.generate_bhptnrsur1dq1e4(
+        >>>
+        >>> times, h = wg.generate_bhptnrsur2dq1e3(
         ...     bhptsur,
         ...     mass_ratio=100.0,
+        ...     spin=0.5,
         ...     modes=[(2,2)]
         ... )
     """
     # Validate inputs
-    if not 1 <= mass_ratio <= 10000:
-        raise ValueError(f"Mass ratio {mass_ratio} outside typical range [1, 10000] "
-                        f"for BHPTNRSur1dq1e4")
-    
+    if not 1 <= mass_ratio <= 1000:
+        raise ValueError(f"Mass ratio {mass_ratio} outside typical range [1, 1000] "
+                        f"for BHPTNRSur2dq1e3")
+
     # Set defaults
     if modes is None:
-        modes = [(2, 2), (2, 1), (3, 1), (3, 2), (3, 3), (4, 2), (4, 3), (4, 4)]
-    
+        modes = list(DEFAULT_MODES)
     if times is None:
-        times = np.arange(-5000.0, 50.0, 0.1)
-    
+        times = DEFAULT_TIMES.copy()
+
     # Generate waveform
     print("Generating BHPTNRSur2dq1e3 waveform...")
     t, h = bhptsur_module.generate_surrogate(q=mass_ratio, spin1=spin, modes=modes, calibrated=True)
-    
+
     # Align time so t=0 is at peak of (2,2) amplitude
     t_peak = _peak_time(t, h[(2, 2)])
     t = t - t_peak
-    print(f'BHPTNRSur1dq1e4 time grid: [{t[0]:.2f}, {t[-1]:.2f}] M')
+    print(f'BHPTNRSur2dq1e3 time grid: [{t[0]:.2f}, {t[-1]:.2f}] M')
     
     # Interpolate to requested time grid
     for mode in h.keys():
@@ -270,9 +280,11 @@ def generate_bhptnrsur2dq1e3(bhptsur_module, mass_ratio, spin, modes=None, times
     return times, h
 
 
-def compute_nrsur3dq8_remnant(surfinbh_module, mass_ratio, chi1=[0, 0, 0], 
-                              chi2=[0, 0, 0], fit_name='NRSur3dq8Remnant',
-                              print_output=True):
+def compute_nrsur3dq8_remnant(surfinbh_module, mass_ratio: float,
+                              chi1: list[float] = [0, 0, 0],
+                              chi2: list[float] = [0, 0, 0],
+                              fit_name: str = 'NRSur3dq8Remnant',
+                              print_output: bool = True) -> dict[str, float | np.ndarray]:
     """
     Compute remnant properties using NRSur3dq8Remnant surrogate.
     
@@ -288,7 +300,7 @@ def compute_nrsur3dq8_remnant(surfinbh_module, mass_ratio, chi1=[0, 0, 0],
             Default is [0, 0, 0]
         fit_name (str): Name of the remnant fit to use. Default is 'NRSur3dq8Remnant'.
             Other options include 'NRSur7dq4Remnant' for precessing systems
-        print_output (boolen): True
+        print_output (bool): Whether to print remnant properties. Default is True
             Prints the final properties
     
     Returns:

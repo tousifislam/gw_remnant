@@ -1,0 +1,17 @@
+/* Minor spacing tweaks for gw_remnant docs */
+
+/* Add breathing room around class/function signatures */
+dl.py dt {
+    margin-top: 0.5rem;
+}
+
+/* Tighten parameter lists inside autodoc */
+dl.field-list > dd > ul {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Slightly wider content area */
+.bd-content {
+    max-width: 52rem;
+}
