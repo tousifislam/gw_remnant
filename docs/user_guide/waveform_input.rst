@@ -29,7 +29,7 @@ arrays matching the time array in length:
        # ... add more modes as available
    }
 
-   calc = GWRemnantCalculator(time, hdict, qinput=4.0)
+   calc = GWRemnantCalculator(time, hdict, q=4.0)
 
 Built-in waveform generators
 -----------------------------

@@ -60,13 +60,13 @@ class InitialEnergyMomenta:
         time (np.ndarray): Array of time values in geometric units (M)
         hdict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
             e.g., {(2,2): h_22(t), (3,3): h_33(t), ...}
-        qinput (float): Mass ratio q = m1/m2, where m1 >= m2
-        spin1_input (list or np.ndarray): Spin vector [sx, sy, sz] for the primary
+        q (float): Mass ratio q = m1/m2, where m1 >= m2
+        chi1 (list or np.ndarray): Spin vector [sx, sy, sz] for the primary
             black hole at the reference time, dimensionless. Only the aligned
             (z) component enters the PN energy/angular momentum. Default None.
-        spin2_input (list or np.ndarray): Spin vector [sx, sy, sz] for the secondary
+        chi2 (list or np.ndarray): Spin vector [sx, sy, sz] for the secondary
             black hole at the reference time, dimensionless. Default None.
-        ecc_input (float): Eccentricity at the reference time. Default None (circular).
+        e_ref (float): Eccentricity at the reference time. Default None (circular).
         E_initial (float): Initial binding-energy magnitude in units of total mass M.
             If None, computed from the PN expressions. Set to 0 to track energy
             changes relative to the reference. Default None.
@@ -77,22 +77,22 @@ class InitialEnergyMomenta:
     Attributes:
         time (np.ndarray): Time array
         hdict (dict): Waveform mode dictionary
-        qinput (float): Mass ratio
-        spin1_input (np.ndarray): Primary spin vector
-        spin2_input (np.ndarray): Secondary spin vector
-        ecc_input (float): Eccentricity
+        q (float): Mass ratio
+        chi1 (np.ndarray): Primary spin vector
+        chi2 (np.ndarray): Secondary spin vector
+        e_ref (float): Eccentricity
         E_initial (float): Initial orbital binding-energy magnitude
         L_initial (float): Initial orbital angular momentum
     """
 
     def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
-                 qinput: float, spin1_input: np.ndarray | list[float] | None = None,
-                 spin2_input: np.ndarray | list[float] | None = None,
-                 ecc_input: float | None = None, E_initial: float | None = None,
+                 q: float, chi1: np.ndarray | list[float] | None = None,
+                 chi2: np.ndarray | list[float] | None = None,
+                 e_ref: float | None = None, E_initial: float | None = None,
                  L_initial: float | None = None) -> None:
 
         # Input validation
-        self._validate_inputs(time, hdict, qinput, spin1_input, spin2_input, ecc_input)
+        self._validate_inputs(time, hdict, q, chi1, chi2, e_ref)
 
         # read waveforms
         self.time = time
@@ -103,25 +103,25 @@ class InitialEnergyMomenta:
                 self.hdict[(mode[0], -mode[1])] = (-1)**mode[0] * np.conjugate(self.hdict[mode])
 
         # Mass ratio
-        self.qinput = qinput
+        self.q = q
 
         # Spin vectors : primary black hole
-        if spin1_input is None:
-            self.spin1_input = np.array([0.0, 0.0, 0.0])
+        if chi1 is None:
+            self.chi1 = np.array([0.0, 0.0, 0.0])
         else:
-            self.spin1_input = np.array(spin1_input)
+            self.chi1 = np.array(chi1)
 
         # Spin vectors : secondary black hole
-        if spin2_input is None:
-            self.spin2_input = np.array([0.0, 0.0, 0.0])
+        if chi2 is None:
+            self.chi2 = np.array([0.0, 0.0, 0.0])
         else:
-            self.spin2_input = np.array(spin2_input)
+            self.chi2 = np.array(chi2)
 
         # Eccentricity
-        if ecc_input is None:
-            self.ecc_input = 0.0
+        if e_ref is None:
+            self.e_ref = 0.0
         else:
-            self.ecc_input = ecc_input
+            self.e_ref = e_ref
 
         # Cache PN expansion parameter and symmetric mass ratio (used by all PN methods)
         self._x0, self._nu = self._compute_initial_pn_parameter()
@@ -150,11 +150,11 @@ class InitialEnergyMomenta:
         orb_frequency = abs(np.gradient(orb_phase, edge_order=2) /
                            np.gradient(self.time, edge_order=2))
         x0 = orb_frequency[0]**(2/3)
-        nu = gwtools.q_to_nu(self.qinput)
+        nu = gwtools.q_to_nu(self.q)
         return x0, nu
 
     @staticmethod
-    def _validate_inputs(time, hdict, qinput, spin1_input, spin2_input, ecc_input):
+    def _validate_inputs(time, hdict, q, chi1, chi2, e_ref):
         """Validate user inputs and raise ValueError on invalid data."""
         # Time array
         if len(time) < 2:
@@ -171,13 +171,13 @@ class InitialEnergyMomenta:
             )
 
         # Mass ratio
-        if qinput < 1:
+        if q < 1:
             raise ValueError(
-                f"Mass ratio q must be >= 1 (q = m1/m2 with m1 >= m2), got q={qinput}."
+                f"Mass ratio q must be >= 1 (q = m1/m2 with m1 >= m2), got q={q}."
             )
 
         # Spin magnitudes
-        for label, spin in [("spin1_input", spin1_input), ("spin2_input", spin2_input)]:
+        for label, spin in [("chi1", chi1), ("chi2", chi2)]:
             if spin is not None:
                 spin_arr = np.asarray(spin)
                 if spin_arr.shape != (3,):
@@ -193,10 +193,10 @@ class InitialEnergyMomenta:
                     )
 
         # Eccentricity
-        if ecc_input is not None:
-            if ecc_input < 0 or ecc_input >= 1:
+        if e_ref is not None:
+            if e_ref < 0 or e_ref >= 1:
                 raise ValueError(
-                    f"Eccentricity must satisfy 0 <= e < 1, got e={ecc_input}."
+                    f"Eccentricity must satisfy 0 <= e < 1, got e={e_ref}."
                 )
 
     # ------------------------------------------------------------------
@@ -212,9 +212,9 @@ class InitialEnergyMomenta:
             tuple: (delta, chiS, chiA) where delta = (m1-m2)/M,
                 chiS = (chi1z + chi2z)/2 and chiA = (chi1z - chi2z)/2.
         """
-        chi1z = self.spin1_input[2]
-        chi2z = self.spin2_input[2]
-        delta = gwtools.q_to_delta(self.qinput)
+        chi1z = self.chi1[2]
+        chi2z = self.chi2[2]
+        delta = gwtools.q_to_delta(self.q)
         chiS = 0.5 * (chi1z + chi2z)
         chiA = 0.5 * (chi1z - chi2z)
         return delta, chiS, chiA
@@ -259,7 +259,7 @@ class InitialEnergyMomenta:
         """
         x = self._x0
         nu = self._nu
-        e = self.ecc_input
+        e = self.e_ref
         delta, chiS, chiA = self._spin_combinations()
         om = 1.0 - e**2
 
@@ -309,7 +309,7 @@ class InitialEnergyMomenta:
         Returns:
             [float]: 4PN+5PN non-spinning circular contribution to E_bind/mu.
         """
-        if self.ecc_input != 0.0:
+        if self.e_ref != 0.0:
             return 0.0
         x = self._x0
         nu = self._nu
@@ -368,7 +368,7 @@ class InitialEnergyMomenta:
         """
         x = self._x0
         nu = self._nu
-        e = self.ecc_input
+        e = self.e_ref
         delta, chiS, chiA = self._spin_combinations()
         om = 1.0 - e**2
         sq = np.sqrt(om)
@@ -422,7 +422,7 @@ class InitialEnergyMomenta:
         Returns:
             [float]: 4PN+5PN non-spinning circular contribution to L/mu.
         """
-        if self.ecc_input != 0.0:
+        if self.e_ref != 0.0:
             return 0.0
         x = self._x0
         nu = self._nu

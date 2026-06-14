@@ -36,8 +36,8 @@ def _make(q, x_target, chi1z=0.0, chi2z=0.0, ecc=0.0):
     h22 = np.exp(-2j * omega * t)
     return InitialEnergyMomenta(
         t, {(2, 2): h22}, q,
-        spin1_input=[0.0, 0.0, chi1z], spin2_input=[0.0, 0.0, chi2z],
-        ecc_input=ecc,
+        chi1=[0.0, 0.0, chi1z], chi2=[0.0, 0.0, chi2z],
+        e_ref=ecc,
     )
 
 

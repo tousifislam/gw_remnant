@@ -15,8 +15,8 @@ quantities and reports the final remnant properties.
 
    from gw_remnant.gw_remnant_calculator import GWRemnantCalculator
 
-   calc = GWRemnantCalculator(time, hdict, qinput=2.0,
-                              spin1_input=[0, 0, 0.5])
+   calc = GWRemnantCalculator(time, hdict, q=2.0,
+                              chi1=[0, 0, 0.5])
    calc.print_remnants()
    calc.plot_mass_energy()
 

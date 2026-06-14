@@ -15,8 +15,8 @@ Basic usage
 
    # time: 1D array in geometric units (M)
    # hdict: dictionary of complex waveform modes, e.g. {(2,2): h22(t), ...}
-   calc = GWRemnantCalculator(time, hdict, qinput=2.0,
-                              spin1_input=[0, 0, 0.5])
+   calc = GWRemnantCalculator(time, hdict, q=2.0,
+                              chi1=[0, 0, 0.5])
 
    # Print a summary table
    calc.print_remnants()
@@ -45,8 +45,8 @@ If you have ``gwsurrogate`` installed, you can generate waveforms directly:
        chi1=[0, 0, 0.5],
    )
 
-   calc = GWRemnantCalculator(times, hdict, qinput=3.0,
-                              spin1_input=[0, 0, 0.5])
+   calc = GWRemnantCalculator(times, hdict, q=3.0,
+                              chi1=[0, 0, 0.5])
    calc.print_remnants()
 
 Available plot methods

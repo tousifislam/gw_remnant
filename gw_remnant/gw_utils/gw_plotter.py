@@ -54,8 +54,8 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
 
     def _get_title_string(self):
         """Build title string showing mass ratio and primary spin z-component."""
-        chi1z = self.spin1_input[2]
-        return f'$[q,\\chi_{{1z}}]=[{self.qinput:.2f},{chi1z:.2f}]$'
+        chi1z = self.chi1[2]
+        return f'$[q,\\chi_{{1z}}]=[{self.q:.2f},{chi1z:.2f}]$'
 
     def _plot_split_timeseries(self, data_list, ylabel_list, figsize=(11, 8),
                                height=0.28, v_gap=0.03, bottom_start=0.08,

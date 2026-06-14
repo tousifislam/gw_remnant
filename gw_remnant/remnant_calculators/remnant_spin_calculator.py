@@ -42,12 +42,12 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
         time (np.ndarray): Array of time values in geometric units (M)
         hdict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
             e.g., {(2,2): h_22(t), (3,3): h_33(t), ...}
-        qinput (float): Mass ratio q = m1/m2, where m1 >= m2
-        spin1_input (list or np.ndarray): Spin vector [sx, sy, sz] for primary black
+        q (float): Mass ratio q = m1/m2, where m1 >= m2
+        chi1 (list or np.ndarray): Spin vector [sx, sy, sz] for primary black
             hole at the start of the waveform, in dimensionless units. Default is None
-        spin2_input (list or np.ndarray): Spin vector [sx, sy, sz] for secondary black
+        chi2 (list or np.ndarray): Spin vector [sx, sy, sz] for secondary black
             hole at the start of the waveform, in dimensionless units. Default is None
-        ecc_input (float): Eccentricity at the reference time. User must provide
+        e_ref (float): Eccentricity at the reference time. User must provide
             accurate value; code does not validate. Default is None
         E_initial (float): Initial energy of the binary in units of total mass M.
             If None, computed using PN expressions. Set to 0 to inspect energy changes
@@ -78,14 +78,14 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
     """
     
     def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
-                 qinput: float, spin1_input: np.ndarray | list[float] | None = None,
-                 spin2_input: np.ndarray | list[float] | None = None,
-                 ecc_input: float | None = None, E_initial: float | None = None,
+                 q: float, chi1: np.ndarray | list[float] | None = None,
+                 chi2: np.ndarray | list[float] | None = None,
+                 e_ref: float | None = None, E_initial: float | None = None,
                  L_initial: float | None = None,
                  M_initial: float = 1, use_filter: bool = False) -> None:
 
-        super().__init__(time, hdict, qinput, spin1_input, spin2_input,
-                         ecc_input, E_initial, L_initial, M_initial, use_filter)
+        super().__init__(time, hdict, q, chi1, chi2,
+                         e_ref, E_initial, L_initial, M_initial, use_filter)
         
         self.J_dot = np.array([self._compute_dJxdt(), self._compute_dJydt(), 
                                self._compute_dJzdt()])
@@ -242,12 +242,12 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
             [np.ndarray]: Dimensionless spin magnitude as a function of time.
         """
         # Get individual initial masses
-        m1 = self.qinput / (1 + self.qinput)  # Primary mass
-        m2 = 1 / (1 + self.qinput)  # Secondary mass
+        m1 = self.q / (1 + self.q)  # Primary mass
+        m2 = 1 / (1 + self.q)  # Secondary mass
         
         # Extract z-component of spin vectors
-        chi1_z = self.spin1_input[2]
-        chi2_z = self.spin2_input[2]
+        chi1_z = self.chi1[2]
+        chi2_z = self.chi2[2]
 
         # Convert dimensionless spins to angular momentum
         S1_z = chi1_z * m1**2
@@ -279,12 +279,12 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
             [float]: Final remnant dimensionless spin magnitude.
         """
         # Get individual initial masses
-        m1 = self.qinput / (1 + self.qinput)  # Primary mass
-        m2 = 1 / (1 + self.qinput)  # Secondary mass
+        m1 = self.q / (1 + self.q)  # Primary mass
+        m2 = 1 / (1 + self.q)  # Secondary mass
         
         # Extract z-component of spin vectors
-        chi1_z = self.spin1_input[2]
-        chi2_z = self.spin2_input[2]
+        chi1_z = self.chi1[2]
+        chi2_z = self.chi2[2]
 
         # Convert dimensionless spins to angular momentum
         S1_z = chi1_z * m1**2
@@ -312,11 +312,11 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
         Returns:
             np.ndarray: Dimensionless spin vector [3 x N_times].
         """
-        m1 = self.qinput / (1 + self.qinput)
-        m2 = 1 / (1 + self.qinput)
+        m1 = self.q / (1 + self.q)
+        m2 = 1 / (1 + self.q)
 
-        S1 = np.array(self.spin1_input) * m1**2
-        S2 = np.array(self.spin2_input) * m2**2
+        S1 = np.array(self.chi1) * m1**2
+        S2 = np.array(self.chi2) * m2**2
         Lvec = self._L_initial_vector()
 
         J_x_t = Lvec[0] + S1[0] + S2[0] - self.Joft[0]
@@ -335,11 +335,11 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
         Returns:
             np.ndarray: Final remnant dimensionless spin vector of shape (3,).
         """
-        m1 = self.qinput / (1 + self.qinput)
-        m2 = 1 / (1 + self.qinput)
+        m1 = self.q / (1 + self.q)
+        m2 = 1 / (1 + self.q)
 
-        S1 = np.array(self.spin1_input) * m1**2
-        S2 = np.array(self.spin2_input) * m2**2
+        S1 = np.array(self.chi1) * m1**2
+        S2 = np.array(self.chi2) * m2**2
         Lvec = self._L_initial_vector()
 
         J_x = Lvec[0] + S1[0] + S2[0] - self.Joft[0, -1]

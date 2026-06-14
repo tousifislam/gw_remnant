@@ -22,7 +22,7 @@ REF = {
 def q8_calc(q8_nr_data):
     """Build GWRemnantCalculator from q=8 NR fixture."""
     time, hdict, q = q8_nr_data
-    return GWRemnantCalculator(time=time, hdict=hdict, qinput=q)
+    return GWRemnantCalculator(time=time, hdict=hdict, q=q)
 
 
 # ---------------------------------------------------------------------------
@@ -100,7 +100,7 @@ class TestRelativeMode:
         """E_initial=0, L_initial=0 tracks changes relative to reference."""
         time, hdict, q = q8_nr_data
         calc = GWRemnantCalculator(
-            time=time, hdict=hdict, qinput=q,
+            time=time, hdict=hdict, q=q,
             E_initial=0, L_initial=0,
         )
         props = calc.get_remnant_properties()
