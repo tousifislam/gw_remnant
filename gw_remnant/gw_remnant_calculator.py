@@ -25,11 +25,13 @@ from .remnant_calculators.peak_luminosity_calculator import PeakLuminosityCalcul
 from .remnant_calculators.kick_velocity_calculator import LinearMomentumCalculator
 from .remnant_calculators.remnant_mass_calculator import RemnantMassCalculator
 from .remnant_calculators.remnant_spin_calculator import AngularMomentumCalculator
+from .remnant_calculators.trajectory_calculator import TrajectoryCalculator
 from .gw_utils.gw_plotter import GWPlotter
 
 
 class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCalculator,
-                          LinearMomentumCalculator, RemnantMassCalculator, InitialEnergyMomenta):
+                          TrajectoryCalculator, LinearMomentumCalculator,
+                          RemnantMassCalculator, InitialEnergyMomenta):
     """
     Calculator for remnant properties of binary black hole mergers.
     
@@ -90,11 +92,14 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
         remnant_spin_vector (np.ndarray): Final remnant dimensionless spin vector (3,)
         L_peak (float): Peak luminosity
         peak_kick (float): Peak kick velocity
-    
+        xoft (np.ndarray): Center-of-mass displacement vector [N_times x 3] in units of M
+        remnant_displacement (np.ndarray): Final center-of-mass displacement vector (3,)
+
     Inherits From:
         GWPlotter: Plotting utilities for visualizing results
         PeakLuminosityCalculator: Peak luminosity calculations
         AngularMomentumCalculator: Angular momentum evolution
+        TrajectoryCalculator: Center-of-mass trajectory
         LinearMomentumCalculator: Linear momentum and kick velocity
         RemnantMassCalculator: Mass and energy calculations
         InitialEnergyMomenta: Initial condition calculations
@@ -136,6 +141,8 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
                 - 'remnant_kick': Final kick velocity in units of c
                 - 'remnant_kick_kmps': Final kick velocity in km/s
                 - 'peak_kick': Peak kick velocity in units of c
+                - 'remnant_displacement_x/y/z': Final center-of-mass displacement
+                    components in units of M
         """
         return {
             'mass_ratio': self.qinput,
@@ -150,6 +157,9 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
             'remnant_kick': self.remnant_kick,
             'remnant_kick_kmps': self.remnant_kick_kmps,
             'peak_kick': self.peak_kick,
+            'remnant_displacement_x': self.remnant_displacement[0],
+            'remnant_displacement_y': self.remnant_displacement[1],
+            'remnant_displacement_z': self.remnant_displacement[2],
         }
 
     def print_remnants(self) -> None:
@@ -173,4 +183,6 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
               f"{self.remnant_spin_vector[1]:.8f}, {self.remnant_spin_vector[2]:.8f})")
         print(f"Remnant kick velocity         : {self.remnant_kick:.8f} c")
         print(f"Remnant kick velocity         : {self.remnant_kick_kmps:.2f} km/s")
+        print(f"Remnant displacement (x,y,z) : ({self.remnant_displacement[0]:.8f}, "
+              f"{self.remnant_displacement[1]:.8f}, {self.remnant_displacement[2]:.8f}) M")
         print("=" * 50)

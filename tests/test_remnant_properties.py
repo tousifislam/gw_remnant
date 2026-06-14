@@ -56,6 +56,7 @@ class TestAPI:
         "remnant_mass", "remnant_spin",
         "remnant_spin_x", "remnant_spin_y", "remnant_spin_z",
         "remnant_kick", "remnant_kick_kmps", "peak_kick",
+        "remnant_displacement_x", "remnant_displacement_y", "remnant_displacement_z",
     }
 
     def test_get_remnant_properties_keys(self, q8_calc):
