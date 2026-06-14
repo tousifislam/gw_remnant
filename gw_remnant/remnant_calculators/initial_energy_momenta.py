@@ -58,7 +58,7 @@ class InitialEnergyMomenta:
 
     Args:
         time (np.ndarray): Array of time values in geometric units (M)
-        hdict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
+        h_dict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
             e.g., {(2,2): h_22(t), (3,3): h_33(t), ...}
         q (float): Mass ratio q = m1/m2, where m1 >= m2
         chi1 (list or np.ndarray): Spin vector [sx, sy, sz] for the primary
@@ -76,7 +76,7 @@ class InitialEnergyMomenta:
 
     Attributes:
         time (np.ndarray): Time array
-        hdict (dict): Waveform mode dictionary
+        h_dict (dict): Waveform mode dictionary
         q (float): Mass ratio
         chi1 (np.ndarray): Primary spin vector
         chi2 (np.ndarray): Secondary spin vector
@@ -85,22 +85,22 @@ class InitialEnergyMomenta:
         L_initial (float): Initial orbital angular momentum
     """
 
-    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
+    def __init__(self, time: np.ndarray, h_dict: dict[tuple[int, int], np.ndarray],
                  q: float, chi1: np.ndarray | list[float] | None = None,
                  chi2: np.ndarray | list[float] | None = None,
                  e_ref: float | None = None, E_initial: float | None = None,
                  L_initial: float | None = None) -> None:
 
         # Input validation
-        self._validate_inputs(time, hdict, q, chi1, chi2, e_ref)
+        self._validate_inputs(time, h_dict, q, chi1, chi2, e_ref)
 
         # read waveforms
         self.time = time
-        self.hdict = hdict
+        self.h_dict = h_dict
         # Ensure negative m modes are present using symmetry relation
-        for mode in list(self.hdict.keys()):
-            if mode[1] != 0 and (mode[0], -mode[1]) not in self.hdict:
-                self.hdict[(mode[0], -mode[1])] = (-1)**mode[0] * np.conjugate(self.hdict[mode])
+        for mode in list(self.h_dict.keys()):
+            if mode[1] != 0 and (mode[0], -mode[1]) not in self.h_dict:
+                self.h_dict[(mode[0], -mode[1])] = (-1)**mode[0] * np.conjugate(self.h_dict[mode])
 
         # Mass ratio
         self.q = q
@@ -146,7 +146,7 @@ class InitialEnergyMomenta:
             tuple: (x0, nu) where x0 is the PN parameter at the start of the waveform
                 and nu is the symmetric mass ratio.
         """
-        orb_phase = 0.5 * gwtools.phase(self.hdict[(2, 2)])
+        orb_phase = 0.5 * gwtools.phase(self.h_dict[(2, 2)])
         orb_frequency = abs(np.gradient(orb_phase, edge_order=2) /
                            np.gradient(self.time, edge_order=2))
         x0 = orb_frequency[0]**(2/3)
@@ -154,7 +154,7 @@ class InitialEnergyMomenta:
         return x0, nu
 
     @staticmethod
-    def _validate_inputs(time, hdict, q, chi1, chi2, e_ref):
+    def _validate_inputs(time, h_dict, q, chi1, chi2, e_ref):
         """Validate user inputs and raise ValueError on invalid data."""
         # Time array
         if len(time) < 2:
@@ -164,10 +164,10 @@ class InitialEnergyMomenta:
             raise ValueError("Time array must be monotonically increasing.")
 
         # Required (2,2) mode
-        if (2, 2) not in hdict:
+        if (2, 2) not in h_dict:
             raise ValueError(
                 "Waveform dictionary must contain the (2,2) mode. "
-                f"Available modes: {list(hdict.keys())}"
+                f"Available modes: {list(h_dict.keys())}"
             )
 
         # Mass ratio

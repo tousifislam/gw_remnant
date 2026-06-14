@@ -14,8 +14,8 @@ Basic usage
    from gw_remnant.gw_remnant_calculator import GWRemnantCalculator
 
    # time: 1D array in geometric units (M)
-   # hdict: dictionary of complex waveform modes, e.g. {(2,2): h22(t), ...}
-   calc = GWRemnantCalculator(time, hdict, q=2.0,
+   # h_dict: dictionary of complex waveform modes, e.g. {(2,2): h22(t), ...}
+   calc = GWRemnantCalculator(time, h_dict, q=2.0,
                               chi1=[0, 0, 0.5])
 
    # Print a summary table
@@ -39,13 +39,13 @@ If you have ``gwsurrogate`` installed, you can generate waveforms directly:
    import gwsurrogate
    from gw_remnant.gw_utils import waveform_generator as wg
 
-   times, hdict = wg.generate_nrhybsur3dq8(
+   times, h_dict = wg.generate_nrhybsur3dq8(
        gwsurrogate,
        mass_ratio=3.0,
        chi1=[0, 0, 0.5],
    )
 
-   calc = GWRemnantCalculator(times, hdict, q=3.0,
+   calc = GWRemnantCalculator(times, h_dict, q=3.0,
                               chi1=[0, 0, 0.5])
    calc.print_remnants()
 

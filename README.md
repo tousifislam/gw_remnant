@@ -45,8 +45,8 @@ from gw_remnant.gw_remnant_calculator import GWRemnantCalculator
 
 # Provide time array and waveform modes (e.g. from a surrogate model)
 # time: 1D array in geometric units (M)
-# hdict: dictionary of complex waveform modes, e.g. {(2,2): h22(t), ...}
-calc = GWRemnantCalculator(time, hdict, q=2.0,
+# h_dict: dictionary of complex waveform modes, e.g. {(2,2): h22(t), ...}
+calc = GWRemnantCalculator(time, h_dict, q=2.0,
                            chi1=[0, 0, 0.5])
 
 # Print summary

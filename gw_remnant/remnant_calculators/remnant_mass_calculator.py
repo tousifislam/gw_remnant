@@ -40,7 +40,7 @@ class RemnantMassCalculator(InitialEnergyMomenta):
     
     Args:
         time (np.ndarray): Array of time values in geometric units (M)
-        hdict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
+        h_dict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
             e.g., {(2,2): h_22(t), (3,3): h_33(t), ...}
         q (float): Mass ratio q = m1/m2, where m1 >= m2
         chi1 (list or np.ndarray): Spin vector [sx, sy, sz] for primary black
@@ -77,14 +77,14 @@ class RemnantMassCalculator(InitialEnergyMomenta):
         Remnant mass from arXiv:2301.07215
     """
     
-    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
+    def __init__(self, time: np.ndarray, h_dict: dict[tuple[int, int], np.ndarray],
                  q: float, chi1: np.ndarray | list[float] | None = None,
                  chi2: np.ndarray | list[float] | None = None,
                  e_ref: float | None = None, E_initial: float | None = None,
                  L_initial: float | None = None,
                  M_initial: float = 1, use_filter: bool = False) -> None:
         
-        super().__init__(time, hdict, q, chi1, chi2,
+        super().__init__(time, h_dict, q, chi1, chi2,
                          e_ref, E_initial, L_initial)
 
         if M_initial <= 0:
@@ -111,9 +111,9 @@ class RemnantMassCalculator(InitialEnergyMomenta):
             [dict]: Dictionary of time derivatives {(l,m): dh_lm/dt}, where
                 each value is a complex array.
         """
-        hdot_dict = {mode: np.gradient(self.hdict[mode], edge_order=2) /
+        hdot_dict = {mode: np.gradient(self.h_dict[mode], edge_order=2) /
                      np.gradient(self.time, edge_order=2) 
-                     for mode in self.hdict.keys()}
+                     for mode in self.h_dict.keys()}
         
         if self.use_filter:
             # Mode-dependent smoothing parameters for spline filtering
@@ -123,10 +123,10 @@ class RemnantMassCalculator(InitialEnergyMomenta):
             default_smoothing = 0.00001
 
             hdot_dict = {}
-            for mode in self.hdict.keys():
+            for mode in self.h_dict.keys():
                 # Interpolate waveform with smoothing
                 s_val = sdict.get((mode[0], abs(mode[1])), default_smoothing)
-                tmp = gwtools.interpolant_h(self.time, self.hdict[mode], s=s_val)
+                tmp = gwtools.interpolant_h(self.time, self.h_dict[mode], s=s_val)
                 # Evaluate derivative of spline
                 hdot_dict[mode] = (splev(self.time, tmp[0], der=1) + 
                                   1j * splev(self.time, tmp[1], der=1))

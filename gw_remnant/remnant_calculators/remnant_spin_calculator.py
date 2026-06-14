@@ -40,7 +40,7 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
     
     Args:
         time (np.ndarray): Array of time values in geometric units (M)
-        hdict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
+        h_dict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
             e.g., {(2,2): h_22(t), (3,3): h_33(t), ...}
         q (float): Mass ratio q = m1/m2, where m1 >= m2
         chi1 (list or np.ndarray): Spin vector [sx, sy, sz] for primary black
@@ -77,14 +77,14 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
         Spin calculation from arXiv:2101.11015
     """
     
-    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
+    def __init__(self, time: np.ndarray, h_dict: dict[tuple[int, int], np.ndarray],
                  q: float, chi1: np.ndarray | list[float] | None = None,
                  chi2: np.ndarray | list[float] | None = None,
                  e_ref: float | None = None, E_initial: float | None = None,
                  L_initial: float | None = None,
                  M_initial: float = 1, use_filter: bool = False) -> None:
 
-        super().__init__(time, hdict, q, chi1, chi2,
+        super().__init__(time, h_dict, q, chi1, chi2,
                          e_ref, E_initial, L_initial, M_initial, use_filter)
         
         self.J_dot = np.array([self._compute_dJxdt(), self._compute_dJydt(), 
@@ -123,10 +123,10 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
             [np.ndarray]: dJx/dt as a function of time in units of M^2.
         """
         dJxdt = np.zeros(len(self.time))
-        for mode in self.hdict.keys():
+        for mode in self.h_dict.keys():
             (l, m) = mode
             dJxdt += (1 / (32 * np.pi)) * np.imag(
-                self.hdict[(l, m)] * (
+                self.h_dict[(l, m)] * (
                     self._coeff_f(l, m) * np.conj(self._read_dhdt_dict(l, m + 1)) +
                     self._coeff_f(l, -m) * np.conj(self._read_dhdt_dict(l, m - 1))
                 )
@@ -149,10 +149,10 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
         # the two f-terms subtract. Validated against NR precessing remnants via
         # the co-precessing-frame cross-check.
         dJydt = np.zeros(len(self.time))
-        for mode in self.hdict.keys():
+        for mode in self.h_dict.keys():
             (l, m) = mode
             dJydt += -(1 / (32 * np.pi)) * np.real(
-                self.hdict[(l, m)] * (
+                self.h_dict[(l, m)] * (
                     self._coeff_f(l, m) * np.conj(self._read_dhdt_dict(l, m + 1)) -
                     self._coeff_f(l, -m) * np.conj(self._read_dhdt_dict(l, m - 1))
                 )
@@ -172,10 +172,10 @@ class AngularMomentumCalculator(LinearMomentumCalculator, RemnantMassCalculator,
             [np.ndarray]: dJz/dt as a function of time in units of M^2.
         """
         dJzdt = np.zeros(len(self.time))
-        for mode in self.hdict.keys():
+        for mode in self.h_dict.keys():
             (l, m) = mode
             dJzdt += (1 / (16 * np.pi)) * m * np.imag(
-                self.hdict[(l, m)] * np.conj(self.h_dot[(l, m)])
+                self.h_dict[(l, m)] * np.conj(self.h_dot[(l, m)])
             )
         return dJzdt
     

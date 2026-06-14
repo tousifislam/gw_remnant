@@ -51,7 +51,7 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
     
     Args:
         time (np.ndarray): Array of time values in geometric units (M)
-        hdict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
+        h_dict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
             e.g., {(2,2): h_22(t), (3,3): h_33(t), ...}
         q (float): Mass ratio q = m1/m2, where m1 >= m2
         chi1 (list or np.ndarray): Spin vector [sx, sy, sz] for primary black
@@ -107,20 +107,20 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
     Example:
         >>> import numpy as np
         >>> time = np.arange(-1000, 100, 0.1)
-        >>> hdict = {(2,2): h_22_data, (3,3): h_33_data}
-        >>> calc = GWRemnantCalculator(time, hdict, q=2.0,
+        >>> h_dict = {(2,2): h_22_data, (3,3): h_33_data}
+        >>> calc = GWRemnantCalculator(time, h_dict, q=2.0,
         ...                           chi1=[0, 0, 0.5])
         >>> calc.print_remnants()
         >>> calc.plot_mass_energy()
     """
     
-    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
+    def __init__(self, time: np.ndarray, h_dict: dict[tuple[int, int], np.ndarray],
                  q: float, chi1: np.ndarray | list[float] | None = None,
                  chi2: np.ndarray | list[float] | None = None,
                  e_ref: float | None = None, E_initial: float | None = None,
                  L_initial: float | None = None,
                  M_initial: float = 1, use_filter: bool = False) -> None:
-        super().__init__(time, hdict, q, chi1, chi2,
+        super().__init__(time, h_dict, q, chi1, chi2,
                          e_ref, E_initial, L_initial, M_initial, use_filter)
 
     def get_remnant_properties(self) -> dict[str, float]:

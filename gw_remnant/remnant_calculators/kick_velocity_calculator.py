@@ -40,7 +40,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
     
     Args:
         time (np.ndarray): Array of time values in geometric units (M)
-        hdict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
+        h_dict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
             e.g., {(2,2): h_22(t), (3,3): h_33(t), ...}
         q (float): Mass ratio q = m1/m2, where m1 >= m2
         chi1 (list or np.ndarray): Spin vector [sx, sy, sz] for primary black
@@ -75,14 +75,14 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         Kick velocity formulas from arXiv:1802.04276 and arXiv:0707.4654
     """
     
-    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
+    def __init__(self, time: np.ndarray, h_dict: dict[tuple[int, int], np.ndarray],
                  q: float, chi1: np.ndarray | list[float] | None = None,
                  chi2: np.ndarray | list[float] | None = None,
                  e_ref: float | None = None, E_initial: float | None = None,
                  L_initial: float | None = None,
                  M_initial: float = 1, use_filter: bool = False) -> None:
 
-        super().__init__(time, hdict, q, chi1, chi2,
+        super().__init__(time, h_dict, q, chi1, chi2,
                          e_ref, E_initial, L_initial, M_initial, use_filter)
 
         self.lmax = self._get_lmax()
@@ -117,7 +117,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         elif m < -l or m > l:
             return np.zeros(len(self.time), dtype=complex)
         else:
-            if (l, m) in self.hdict.keys():
+            if (l, m) in self.h_dict.keys():
                 return self.h_dot[l, m]
             else:
                 return np.zeros(len(self.time), dtype=complex)
@@ -129,7 +129,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         Returns:
             [int]: Maximum spherical harmonic degree l present in the waveform.
         """
-        return max([mode[0] for mode in self.hdict.keys()])
+        return max([mode[0] for mode in self.h_dict.keys()])
         
     def _coeffs_a(self, l, m):
         """
@@ -206,7 +206,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
             [np.ndarray]: dPx/dt as a function of time in units of M.
         """
         dPxdt = np.zeros(len(self.time))
-        for mode in self.hdict.keys():
+        for mode in self.h_dict.keys():
             (l, m) = mode
             dPxdt += (1 / (8 * np.pi)) * np.real(
                 self.h_dot[(l, m)] * (
@@ -230,7 +230,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
             [np.ndarray]: dPy/dt as a function of time in units of M.
         """
         dPydt = np.zeros(len(self.time))
-        for mode in self.hdict.keys():
+        for mode in self.h_dict.keys():
             (l, m) = mode
             dPydt += (1 / (8 * np.pi)) * np.imag(
                 self.h_dot[(l, m)] * (
@@ -254,7 +254,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
             [np.ndarray]: dPz/dt as a function of time in units of M.
         """
         dPzdt = np.zeros(len(self.time))
-        for mode in self.hdict.keys():
+        for mode in self.h_dict.keys():
             (l, m) = mode
             dPzdt += (1 / (16 * np.pi)) * np.real(
                 self.h_dot[(l, m)] * (
