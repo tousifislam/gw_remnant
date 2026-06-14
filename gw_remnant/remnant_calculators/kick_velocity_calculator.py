@@ -19,9 +19,11 @@ from __future__ import annotations
 
 import numpy as np
 import scipy.integrate as integrate
-import lal
 
 from .remnant_mass_calculator import RemnantMassCalculator
+
+# Speed of light in m/s (exact, by definition); used to convert kicks to km/s.
+C_SI = 299792458.0
 
 
 class LinearMomentumCalculator(RemnantMassCalculator):
@@ -322,7 +324,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         Returns:
             [np.ndarray]: Kick velocity magnitude as a function of time in units of c.
         """
-        return self.kickoft * lal.C_SI * 1e-3
+        return self.kickoft * C_SI * 1e-3
 
     def _get_peak_via_quadratic_fit(self, t, func):
         """
@@ -389,4 +391,4 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         Returns:
             [float]: Final kick velocity magnitude in units of c.
         """
-        return self.kickoft[-1] * lal.C_SI * 1e-3
+        return self.kickoft[-1] * C_SI * 1e-3

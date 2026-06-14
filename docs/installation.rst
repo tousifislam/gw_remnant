@@ -14,12 +14,6 @@ With optional waveform surrogates:
 
    pip install gw_remnant[surrogates]
 
-With LAL libraries (needed for kick velocity in km/s):
-
-.. code-block:: bash
-
-   pip install gw_remnant[lal]
-
 Install everything:
 
 .. code-block:: bash
@@ -47,4 +41,3 @@ Requirements
 Optional dependencies:
 
 - ``gwsurrogate``, ``surfinBH`` -- for built-in waveform generation
-- ``lal``, ``lalsimulation`` -- for converting kick velocity to km/s

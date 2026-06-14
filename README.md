@@ -36,7 +36,6 @@ pip install -e .[dev]
 - scipy >= 1.7.0
 - matplotlib >= 3.3.0
 - gwtools
-- lal, lalsimulation (optional, for kick velocity in km/s)
 
 ## Quick Start
 
