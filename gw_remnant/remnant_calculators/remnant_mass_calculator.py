@@ -166,50 +166,63 @@ class RemnantMassCalculator(InitialEnergyMomenta):
     def _compute_radiated_energy(self):
         """
         Compute cumulative radiated energy as a function of time.
-        
-        Integrates the energy flux to obtain the total radiated energy E(t)
-        using trapezoidal integration. Includes the initial energy offset.
-        
+
+        Integrates the energy flux to obtain the *pure* radiated gravitational-wave
+        energy E_rad(t) = \\int dE/dt dt' using trapezoidal integration, starting
+        from zero at the first sample. The initial binding energy ``E_initial`` is
+        deliberately NOT folded in here so that ``Eoft``/``E_rad`` report the
+        physical energy carried away by the waves (see ``_compute_bondi_mass`` for
+        how the initial mass-energy enters the mass).
+
         Returns:
             [np.ndarray]: Radiated energy as a function of time in units of
                 total mass M.
         """
         try:
-            E_rad = integrate.cumulative_trapezoid(self.E_dot, self.time,
-                                                   initial=0.0) + self.E_initial
+            E_rad = integrate.cumulative_trapezoid(self.E_dot, self.time, initial=0.0)
         except AttributeError:
             # scipy < 1.14: cumulative_trapezoid was named cumtrapz
-            E_rad = integrate.cumtrapz(self.E_dot, self.time, initial=0.0) + self.E_initial
+            E_rad = integrate.cumtrapz(self.E_dot, self.time, initial=0.0)
         return E_rad
 
     def _compute_bondi_mass(self):
         """
         Compute Bondi mass (dynamic mass) as a function of time.
-        
-        The Bondi mass represents the total mass-energy of the system at each
-        instant, accounting for energy radiated away through gravitational waves.
-        It decreases monotonically as the system loses energy.
-        
+
+        The Bondi mass is the total mass-energy of the system at each instant,
+        decreasing monotonically as energy is radiated away:
+
+            M(t) = M_ADM - E_rad(t),   with   M_ADM = M_initial - E_initial,
+
+        where ``E_initial`` is the (positive) initial binding-energy magnitude, so
+        that the curve starts at the ADM mass M(t_0) = M_initial - E_initial and
+        its endpoint equals the remnant mass. With the default ``E_initial`` from
+        the PN expressions, or with ``E_initial = M_initial - M_ADM`` supplied from
+        NR metadata, this reproduces the correct mass balance.
+
         See Eq. (4) of arXiv:1802.04276.
-        
+
         Returns:
             [np.ndarray]: Bondi mass M(t) as a function of time in units of
                 initial total mass M.
         """
-        return self.M_initial * (1.0 - self.Eoft + self.E_initial)
+        return (self.M_initial - self.E_initial) - self.Eoft
 
     def _compute_remnant_mass(self):
         """
         Compute final remnant black hole mass.
-        
-        Calculates the mass of the remnant black hole after all gravitational
-        wave emission has ceased. This is the initial mass minus the total
-        radiated energy.
-        
+
+        The remnant mass is the ADM mass-energy minus the total radiated energy,
+
+            M_remnant = M_ADM - E_rad = (M_initial - E_initial) - E_rad,
+
+        i.e. the endpoint of the Bondi-mass curve. This is consistent with
+        ``_compute_bondi_mass`` and lets NR-provided initial energies be used
+        directly via ``E_initial = M_initial - M_ADM``.
+
         See Eq. (9) of arXiv:2301.07215.
-        
+
         Returns:
             [float]: Final remnant mass in units of initial total mass M.
         """
-        M_remnant = self.M_initial * (1.0 - self.E_rad)
-        return M_remnant
+        return (self.M_initial - self.E_initial) - self.E_rad

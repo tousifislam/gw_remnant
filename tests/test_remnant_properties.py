@@ -10,7 +10,9 @@ from gw_remnant.gw_remnant_calculator import GWRemnantCalculator
 REF = {
     "remnant_mass": 0.98958938,
     "remnant_spin": 0.30795092,
-    "E_rad": 0.01041062,
+    # E_rad is the pure radiated GW energy (no longer offset by the initial
+    # binding energy; see remnant_mass_calculator._compute_radiated_energy).
+    "E_rad": 0.00702148,
     "L_peak": 0.00012866,
     "remnant_kick": 0.00025646,
 }
@@ -106,3 +108,42 @@ class TestRelativeMode:
             assert np.isfinite(val), f"{key} is not finite"
         # Remnant mass should still be positive
         assert props["remnant_mass"] > 0
+
+
+class TestVectorLInitial:
+    """A 3-vector L_initial generalises the scalar (z-only) form."""
+
+    def test_vector_z_matches_scalar(self, q8_nr_data):
+        time, hdict, q = q8_nr_data
+        Lz = 0.7
+        scalar = GWRemnantCalculator(time, hdict, q, L_initial=Lz)
+        vector = GWRemnantCalculator(time, hdict, q, L_initial=[0.0, 0.0, Lz])
+        assert np.allclose(scalar.remnant_spin_vector, vector.remnant_spin_vector)
+        assert scalar.remnant_spin == pytest.approx(vector.remnant_spin)
+
+    def test_inplane_L_enters_xy(self, q8_nr_data):
+        """In-plane L components feed the x,y remnant-spin components."""
+        time, hdict, q = q8_nr_data
+        Lx = 0.05
+        base = GWRemnantCalculator(time, hdict, q, L_initial=[0.0, 0.0, 0.7])
+        tilted = GWRemnantCalculator(time, hdict, q, L_initial=[Lx, 0.0, 0.7])
+        d = tilted.remnant_spin_vector[0] - base.remnant_spin_vector[0]
+        assert d == pytest.approx(Lx / tilted.remnant_mass**2, rel=1e-6)
+
+
+class TestTrajectory:
+    """Center-of-mass trajectory = time-integral of the recoil velocity."""
+
+    def test_trajectory(self, q8_nr_data):
+        import scipy.integrate as integrate
+        from gw_remnant.remnant_calculators.trajectory_calculator import TrajectoryCalculator
+        time, hdict, q = q8_nr_data
+        c = TrajectoryCalculator(time, hdict, q)
+        assert c.xoft.shape == c.voft.shape
+        assert np.all(np.isfinite(c.xoft))
+        assert np.allclose(c.xoft[0], 0.0)            # starts at the origin
+        assert np.allclose(c.remnant_displacement, c.xoft[-1])
+        # final displacement equals the time-integral of the velocity
+        ref = np.array([integrate.cumulative_trapezoid(c.voft[:, i], time, initial=0.0)[-1]
+                        for i in range(3)])
+        assert np.allclose(c.remnant_displacement, ref)
