@@ -148,3 +148,12 @@ class TestTrajectory:
         ref = np.array([integrate.cumulative_trapezoid(c.voft[:, i], time, initial=0.0)[-1]
                         for i in range(3)])
         assert np.allclose(c.remnant_displacement, ref)
+
+    def test_plot_trajectory(self, q8_calc, tmp_path):
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.figure
+        out = tmp_path / "trajectory.png"
+        fig = q8_calc.plot_trajectory(save_path=str(out))
+        assert out.exists()
+        assert isinstance(fig, matplotlib.figure.Figure)

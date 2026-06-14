@@ -10,8 +10,8 @@
 #   Description
 #   -----------
 #   Provides quick diagnostic plotting utilities for gravitational wave remnant
-#   properties including mass, energy, linear momentum, angular momentum, and
-#   kick velocity profiles as functions of time.
+#   properties including mass, energy, linear momentum, angular momentum,
+#   kick velocity, and the center-of-mass trajectory.
 #
 #====================================================================================
 
@@ -44,7 +44,8 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
 
     This class provides methods to visualize the time evolution of various
     physical quantities extracted from gravitational waveforms, including
-    mass, energy, linear momentum, angular momentum, and kick velocity.
+    mass, energy, linear momentum, angular momentum, kick velocity, and the
+    center-of-mass trajectory.
 
     Inherits From:
         PeakLuminosityCalculator: Provides energy flux calculations
@@ -238,3 +239,55 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
                      self.spin_vector_oft[2]]
         ylabel_list = ['$\\chi_x(t)$', '$\\chi_y(t)$', '$\\chi_z(t)$']
         return self._plot_split_timeseries(data_list, ylabel_list, save_path=save_path)
+
+    def plot_trajectory(self, save_path: str | None = None) -> matplotlib.figure.Figure:
+        """
+        Plot the center-of-mass trajectory of the binary.
+
+        Creates a two-panel figure:
+        - Left: the center-of-mass path projected onto the orbital (x-y) plane,
+          x(t) = \\int v(t) dt, with the start and final (remnant) points marked.
+        - Right: the displacement magnitude |x(t)| as a function of time, split
+          into pre-merger (t <= -500M) and post-merger (t > -500M) regions.
+
+        Positions are in units of total mass M (geometric units, G=c=1).
+        See arXiv:1802.04276 and arXiv:1510.03386.
+
+        Args:
+            save_path (str or None): If provided, save figure to this path.
+
+        Returns:
+            matplotlib.figure.Figure: The figure object.
+        """
+        x = self.xoft
+        xmag = np.linalg.norm(x, axis=1)
+
+        fig, (ax_path, ax_mag) = plt.subplots(1, 2, figsize=(12, 5))
+
+        # center-of-mass path in the orbital plane
+        ax_path.plot(x[:, 0], x[:, 1], lw=1)
+        ax_path.plot(x[0, 0], x[0, 1], 'o', color='tab:green', label='start')
+        ax_path.plot(x[-1, 0], x[-1, 1], '*', color='tab:red', ms=15, label='remnant')
+        ax_path.set_xlabel('$x$ $[M]$', fontsize=16)
+        ax_path.set_ylabel('$y$ $[M]$', fontsize=16)
+        ax_path.set_title(self._get_title_string(), fontsize=16)
+        ax_path.set_aspect('equal', adjustable='datalim')
+        ax_path.tick_params(labelsize=14)
+        ax_path.grid(True)
+        ax_path.legend(fontsize=13)
+
+        # displacement magnitude vs time
+        ax_mag.plot(self.time, xmag)
+        ax_mag.axvline(_T_SPLIT, color='gray', ls='--', lw=1)
+        ax_mag.set_xlabel('$t$ $[M]$', fontsize=16)
+        ax_mag.set_ylabel('$|x(t)|$ $[M]$', fontsize=16)
+        ax_mag.tick_params(labelsize=14)
+        ax_mag.grid(True)
+
+        fig.tight_layout()
+        if save_path is not None:
+            fig.savefig(save_path, dpi=300, bbox_inches='tight')
+        else:
+            plt.show()
+
+        return fig
