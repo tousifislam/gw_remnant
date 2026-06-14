@@ -66,6 +66,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         voft (np.ndarray): Center of mass velocity vector [3 x N_times] in units of c
         kickoft (np.ndarray): Kick velocity magnitude as a function of time in units of c
         remnant_kick (float): Final kick velocity magnitude in units of c
+        remnant_kick_vector (np.ndarray): Final kick velocity vector (3,) in units of c
         peak_kick (float): Peak kick velocity magnitude in units of c
     
     Inherits From:
@@ -94,6 +95,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         self.kickoft_kmps = self._compute_kickoft_in_kmps()
         self.remnant_kick = self._compute_remnant_kick()
         self.remnant_kick_kmps = self._compute_remnant_kick_in_kmps()
+        self.remnant_kick_vector = self._compute_remnant_kick_vector()
         self.peak_kick = self._compute_peak_kick()
     
     def _read_dhdt_dict(self, l, m):
@@ -392,3 +394,17 @@ class LinearMomentumCalculator(RemnantMassCalculator):
             [float]: Final kick velocity magnitude in units of c.
         """
         return self.kickoft[-1] * C_SI * 1e-3
+
+    def _compute_remnant_kick_vector(self):
+        """
+        Compute the final remnant kick velocity vector.
+
+        Returns the center-of-mass velocity vector at the final time, i.e. the
+        recoil imparted to the remnant black hole.
+
+        See Eq. (14) of arXiv:1802.04276.
+
+        Returns:
+            [np.ndarray]: Final kick velocity vector (3,) in units of c.
+        """
+        return self.voft[-1]

@@ -41,7 +41,7 @@ If you have ``gwsurrogate`` installed, you can generate waveforms directly:
 
    times, h_dict = wg.generate_nrhybsur3dq8(
        gwsurrogate,
-       mass_ratio=3.0,
+       q=3.0,
        chi1=[0, 0, 0.5],
    )
 

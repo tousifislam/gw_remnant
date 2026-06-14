@@ -84,6 +84,7 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
         voft (np.ndarray): Center of mass velocity vector as a function of time [3 x N_times]
         kickoft (np.ndarray): Kick velocity magnitude as a function of time
         remnant_kick (float): Final kick velocity magnitude
+        remnant_kick_vector (np.ndarray): Final kick velocity vector (3,) in units of c
         J_dot (np.ndarray): Time derivative of angular momentum vector [3 x N_times]
         Joft (np.ndarray): Angular momentum vector as a function of time [3 x N_times]
         spinoft (np.ndarray): Dimensionless spin z-component as a function of time
@@ -140,6 +141,7 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
                 - 'remnant_spin_z': Final dimensionless spin z-component
                 - 'remnant_kick': Final kick velocity in units of c
                 - 'remnant_kick_kmps': Final kick velocity in km/s
+                - 'remnant_kick_x/y/z': Final kick velocity vector components in units of c
                 - 'peak_kick': Peak kick velocity in units of c
                 - 'remnant_displacement_x/y/z': Final center-of-mass displacement
                     components in units of M
@@ -156,6 +158,9 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
             'remnant_spin_z': self.remnant_spin_vector[2],
             'remnant_kick': self.remnant_kick,
             'remnant_kick_kmps': self.remnant_kick_kmps,
+            'remnant_kick_x': self.remnant_kick_vector[0],
+            'remnant_kick_y': self.remnant_kick_vector[1],
+            'remnant_kick_z': self.remnant_kick_vector[2],
             'peak_kick': self.peak_kick,
             'remnant_displacement_x': self.remnant_displacement[0],
             'remnant_displacement_y': self.remnant_displacement[1],
@@ -183,6 +188,8 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
               f"{self.remnant_spin_vector[1]:.8f}, {self.remnant_spin_vector[2]:.8f})")
         print(f"Remnant kick velocity         : {self.remnant_kick:.8f} c")
         print(f"Remnant kick velocity         : {self.remnant_kick_kmps:.2f} km/s")
+        print(f"Remnant kick vector (x,y,z)  : ({self.remnant_kick_vector[0]:.8f}, "
+              f"{self.remnant_kick_vector[1]:.8f}, {self.remnant_kick_vector[2]:.8f}) c")
         print(f"Remnant displacement (x,y,z) : ({self.remnant_displacement[0]:.8f}, "
               f"{self.remnant_displacement[1]:.8f}, {self.remnant_displacement[2]:.8f}) M")
         print("=" * 50)

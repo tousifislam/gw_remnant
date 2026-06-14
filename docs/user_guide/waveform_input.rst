@@ -49,7 +49,7 @@ Aligned-spin model valid for mass ratios 1 <= *q* <= 10:
    from gw_remnant.gw_utils import waveform_generator as wg
 
    times, h_dict = wg.generate_nrhybsur3dq8(
-       gwsurrogate, mass_ratio=3.0, chi1=[0, 0, 0.5]
+       gwsurrogate, q=3.0, chi1=[0, 0, 0.5]
    )
 
 BHPTNRSur1dq1e4
@@ -62,7 +62,7 @@ Non-spinning model valid for 1 <= *q* <= 10 000:
    import BHPTNRSur1dq1e4 as bhptsur
    from gw_remnant.gw_utils import waveform_generator as wg
 
-   times, h_dict = wg.generate_bhptnrsur1dq1e4(bhptsur, mass_ratio=100.0)
+   times, h_dict = wg.generate_bhptnrsur1dq1e4(bhptsur, q=100.0)
 
 BHPTNRSur2dq1e3
 ^^^^^^^^^^^^^^^^
@@ -75,7 +75,7 @@ Spinning model valid for 1 <= *q* <= 1000 and \|chi\| <= 0.8:
    from gw_remnant.gw_utils import waveform_generator as wg
 
    times, h_dict = wg.generate_bhptnrsur2dq1e3(
-       bhptsur, mass_ratio=100.0, spin=0.5
+       bhptsur, q=100.0, spin=0.5
    )
 
 Tips
