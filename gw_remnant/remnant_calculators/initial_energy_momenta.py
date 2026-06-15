@@ -142,6 +142,10 @@ class InitialEnergyMomenta:
         """Compute the PN expansion parameter x = (M*omega)^(2/3) and symmetric mass
         ratio nu from the initial orbital frequency of the (2,2) mode.
 
+        For eccentric orbits the instantaneous GW frequency oscillates between
+        periastron and apastron.  Averaging over one estimated orbital period
+        recovers the mean motion; for circular orbits this is a no-op.
+
         Returns:
             tuple: (x0, nu) where x0 is the PN parameter at the start of the waveform
                 and nu is the symmetric mass ratio.
@@ -149,7 +153,14 @@ class InitialEnergyMomenta:
         orb_phase = 0.5 * gwtools.phase(self.h_dict[(2, 2)])
         orb_frequency = abs(np.gradient(orb_phase, edge_order=2) /
                            np.gradient(self.time, edge_order=2))
-        x0 = orb_frequency[0]**(2/3)
+
+        # Average over ~1 orbital period to handle eccentric oscillations
+        T_orb = 2 * np.pi / orb_frequency[0]
+        idx_end = np.searchsorted(self.time, self.time[0] + T_orb)
+        idx_end = max(2, min(idx_end, len(self.time) - 1))
+        omega_mean = np.mean(orb_frequency[:idx_end])
+
+        x0 = omega_mean**(2/3)
         nu = gwtools.q_to_nu(self.q)
         return x0, nu
 
