@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.png" alt="gw_remnant logo" width="400"/>
+</p>
+
 # gw_remnant
 
 [![Documentation](https://img.shields.io/badge/docs-online-blue)](https://tousifislam.github.io/gw_remnant/)
@@ -59,7 +63,8 @@ pip install -e .[dev]
 | `pip install gw_remnant[nr]` | sxs, mayawaves | Numerical relativity catalog access |
 | `pip install gw_remnant[dev]` | pytest, pytest-cov, black, flake8, ipython, jupyter | Development and testing |
 | `pip install gw_remnant[docs]` | sphinx, pydata-sphinx-theme, sphinx-autodoc-typehints, nbsphinx, pandoc, ipykernel | Building documentation |
-| `pip install gw_remnant[all]` | gwsurrogate, surfinBH, sxs, mayawaves | All non-dev optional dependencies |
+| `pip install gw_remnant[eob]` | pyseobnr | Effective-one-body waveforms |
+| `pip install gw_remnant[all]` | gwsurrogate, surfinBH, sxs, mayawaves, pyseobnr | All non-dev optional dependencies |
 
 ## Quick Start
 
@@ -142,8 +147,15 @@ The package includes built-in waveform generators for `NRHybSur3dq8`, `NRSur7dq4
 
 Example notebooks are provided in the [`tutorials/`](tutorials/) directory:
 
-- [Example with custom waveforms](tutorials/example_with_customized_waveform.ipynb) — no surrogate installation required
-- [Example with default waveforms](tutorials/example_with_default_waveforms.ipynb) — uses BHPTNRSur1dq1e4 and NRHybSur3dq8
+| # | Notebook | Waveform source |
+|---|----------|-----------------|
+| 1 | [Remnant from default waveforms](tutorials/1_remnant_from_default_waveform.ipynb) | Built-in surrogate generators (BHPTNRSur1dq1e4, NRHybSur3dq8) |
+| 2 | [Remnant from NRSur7dq4 waveforms](tutorials/2_remnant_from_NRSur7dq4_waveforms.ipynb) | NRSur7dq4 (precessing surrogate) |
+| 3 | [Remnant from NRHybSur3dq8 waveforms](tutorials/3_remnant_from_NRHybSur3dq8_waveforms.ipynb) | NRHybSur3dq8 (aligned-spin surrogate) |
+| 4 | [Remnant from SXS quasi-circular simulations](tutorials/4_remnant_from_sxs_quasicircular_simulations.ipynb) | SXS NR catalog (non-spinning, aligned-spin, precessing) |
+| 5 | [Remnant from SXS eccentric simulations](tutorials/5_remnant_from_sxs_eccentric_simulations.ipynb) | SXS NR catalog (eccentric orbits) |
+| 6 | [Remnant from Maya catalog waveforms](tutorials/6_remnant_from_maya_catalog_waveforms.ipynb) | Maya/Georgia Tech NR catalog |
+| 7 | [Remnant from pySEOBNR waveforms](tutorials/7_remnant_from_pyseobnr_waveforms.ipynb) | pySEOBNR EOB models (SEOBNRv5HM/PHM/EHM) |
 
 These are also rendered in the [online documentation](https://tousifislam.github.io/gw_remnant/tutorials/index.html).
 
