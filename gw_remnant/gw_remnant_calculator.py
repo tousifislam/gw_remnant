@@ -18,6 +18,7 @@
 from __future__ import annotations
 __author__ = "Tousif Islam"
 
+import warnings
 import numpy as np
 
 from .remnant_calculators.initial_energy_momenta import InitialEnergyMomenta
@@ -121,8 +122,21 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
                  e_ref: float | None = None, E_initial: float | None = None,
                  L_initial: float | None = None,
                  M_initial: float = 1, use_filter: bool = False) -> None:
+        warnings.warn(
+            "Tips: If you are using NR waveforms, ensure that they do not "
+            "contain junk radiation, as that is known to corrupt the remnant "
+            "property estimation.",
+            stacklevel=2,
+        )
         super().__init__(time, h_dict, q, chi1, chi2,
                          e_ref, E_initial, L_initial, M_initial, use_filter)
+        if np.linalg.norm(self.remnant_spin_vector) > 1:
+            warnings.warn(
+                "Attention: Final remnant spin is unphysical (|chi_f| > 1). "
+                "Most likely the waveform data includes junk radiation which "
+                "caused this. Check for that.",
+                stacklevel=2,
+            )
 
     def get_remnant_properties(self) -> dict[str, float]:
         """

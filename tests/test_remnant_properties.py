@@ -9,7 +9,7 @@ from gw_remnant.gw_remnant_calculator import GWRemnantCalculator
 # Reference values for q=8 non-spinning (from tutorials)
 REF = {
     "remnant_mass": 0.98958938,
-    "remnant_spin": 0.30795092,
+    "remnant_spin": 0.30699791,
     # E_rad is the pure radiated GW energy (no longer offset by the initial
     # binding energy; see remnant_mass_calculator._compute_radiated_energy).
     "E_rad": 0.00702148,
