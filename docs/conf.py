@@ -95,4 +95,4 @@ inheritance_node_attrs = dict(shape="ellipse", fontsize=10)
 
 # Use SVG for graphviz output; suppress warning if dot is missing
 graphviz_output_format = "svg"
-suppress_warnings = ["graphviz"]
+suppress_warnings = ["graphviz", "graphviz.dot"]

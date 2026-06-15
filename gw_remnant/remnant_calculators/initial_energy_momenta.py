@@ -42,9 +42,10 @@ class InitialEnergyMomenta:
     Computes the initial orbital binding energy and orbital angular momentum of a
     binary black hole using post-Newtonian (PN) approximations. The defaults are
     valid for:
-      - non-spinning circular binaries to 5PN (analytic 4PN + NR-calibrated 5PN);
-      - aligned-spin binaries to 3PN (spin-orbit and spin-spin);
-      - eccentric binaries to 3PN (including spin x eccentricity cross terms).
+
+    - non-spinning circular binaries to 5PN (analytic 4PN + NR-calibrated 5PN)
+    - aligned-spin binaries to 3PN (spin-orbit and spin-spin)
+    - eccentric binaries to 3PN (including spin x eccentricity cross terms)
 
     Initial conditions can either be computed from the PN expressions above or be
     supplied directly by the user (e.g. read from numerical-relativity metadata).
