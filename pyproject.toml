@@ -47,10 +47,11 @@ dependencies = [
 
 [project.optional-dependencies]
 surrogates = ["gwsurrogate", "surfinBH"]
-lal = ["lal", "lalsimulation"]
-all = ["gwsurrogate", "surfinBH", "lal", "lalsimulation"]
+nr = ["sxs", "mayawaves"]
+eob = ["pyseobnr"]
+all = ["gwsurrogate", "surfinBH", "sxs", "mayawaves", "pyseobnr"]
 dev = ["pytest>=6.0", "pytest-cov", "black", "flake8", "ipython", "jupyter"]
-docs = ["sphinx>=7.0", "pydata-sphinx-theme>=0.15", "sphinx-autodoc-typehints>=1.24", "nbsphinx>=0.9", "pandoc", "ipykernel"]
+docs = ["sphinx>=7.0", "sphinx-rtd-theme", "sphinx-autodoc-typehints>=1.24", "nbsphinx>=0.9", "pandoc", "ipykernel"]
 
 [project.urls]
 Homepage = "https://github.com/tousifislam/gw_remnant"

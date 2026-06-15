@@ -9,8 +9,10 @@ from gw_remnant.gw_remnant_calculator import GWRemnantCalculator
 # Reference values for q=8 non-spinning (from tutorials)
 REF = {
     "remnant_mass": 0.98958938,
-    "remnant_spin": 0.30795092,
-    "E_rad": 0.01041062,
+    "remnant_spin": 0.30699791,
+    # E_rad is the pure radiated GW energy (no longer offset by the initial
+    # binding energy; see remnant_mass_calculator._compute_radiated_energy).
+    "E_rad": 0.00702148,
     "L_peak": 0.00012866,
     "remnant_kick": 0.00025646,
 }
@@ -19,8 +21,8 @@ REF = {
 @pytest.fixture
 def q8_calc(q8_nr_data):
     """Build GWRemnantCalculator from q=8 NR fixture."""
-    time, hdict, q = q8_nr_data
-    return GWRemnantCalculator(time=time, hdict=hdict, qinput=q)
+    time, h_dict, q = q8_nr_data
+    return GWRemnantCalculator(time=time, h_dict=h_dict, q=q)
 
 
 # ---------------------------------------------------------------------------
@@ -54,6 +56,8 @@ class TestAPI:
         "remnant_mass", "remnant_spin",
         "remnant_spin_x", "remnant_spin_y", "remnant_spin_z",
         "remnant_kick", "remnant_kick_kmps", "peak_kick",
+        "remnant_kick_x", "remnant_kick_y", "remnant_kick_z",
+        "remnant_displacement_x", "remnant_displacement_y", "remnant_displacement_z",
     }
 
     def test_get_remnant_properties_keys(self, q8_calc):
@@ -95,9 +99,9 @@ class TestSpinVector:
 class TestRelativeMode:
     def test_relative_mode(self, q8_nr_data):
         """E_initial=0, L_initial=0 tracks changes relative to reference."""
-        time, hdict, q = q8_nr_data
+        time, h_dict, q = q8_nr_data
         calc = GWRemnantCalculator(
-            time=time, hdict=hdict, qinput=q,
+            time=time, h_dict=h_dict, q=q,
             E_initial=0, L_initial=0,
         )
         props = calc.get_remnant_properties()
@@ -106,3 +110,51 @@ class TestRelativeMode:
             assert np.isfinite(val), f"{key} is not finite"
         # Remnant mass should still be positive
         assert props["remnant_mass"] > 0
+
+
+class TestVectorLInitial:
+    """A 3-vector L_initial generalises the scalar (z-only) form."""
+
+    def test_vector_z_matches_scalar(self, q8_nr_data):
+        time, h_dict, q = q8_nr_data
+        Lz = 0.7
+        scalar = GWRemnantCalculator(time, h_dict, q, L_initial=Lz)
+        vector = GWRemnantCalculator(time, h_dict, q, L_initial=[0.0, 0.0, Lz])
+        assert np.allclose(scalar.remnant_spin_vector, vector.remnant_spin_vector)
+        assert scalar.remnant_spin == pytest.approx(vector.remnant_spin)
+
+    def test_inplane_L_enters_xy(self, q8_nr_data):
+        """In-plane L components feed the x,y remnant-spin components."""
+        time, h_dict, q = q8_nr_data
+        Lx = 0.05
+        base = GWRemnantCalculator(time, h_dict, q, L_initial=[0.0, 0.0, 0.7])
+        tilted = GWRemnantCalculator(time, h_dict, q, L_initial=[Lx, 0.0, 0.7])
+        d = tilted.remnant_spin_vector[0] - base.remnant_spin_vector[0]
+        assert d == pytest.approx(Lx / tilted.remnant_mass**2, rel=1e-6)
+
+
+class TestTrajectory:
+    """Center-of-mass trajectory = time-integral of the recoil velocity."""
+
+    def test_trajectory(self, q8_nr_data):
+        import scipy.integrate as integrate
+        from gw_remnant.remnant_calculators.trajectory_calculator import TrajectoryCalculator
+        time, h_dict, q = q8_nr_data
+        c = TrajectoryCalculator(time, h_dict, q)
+        assert c.xoft.shape == c.voft.shape
+        assert np.all(np.isfinite(c.xoft))
+        assert np.allclose(c.xoft[0], 0.0)            # starts at the origin
+        assert np.allclose(c.remnant_displacement, c.xoft[-1])
+        # final displacement equals the time-integral of the velocity
+        ref = np.array([integrate.cumulative_trapezoid(c.voft[:, i], time, initial=0.0)[-1]
+                        for i in range(3)])
+        assert np.allclose(c.remnant_displacement, ref)
+
+    def test_plot_trajectory(self, q8_calc, tmp_path):
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.figure
+        out = tmp_path / "trajectory.png"
+        fig = q8_calc.plot_trajectory(save_path=str(out))
+        assert out.exists()
+        assert isinstance(fig, matplotlib.figure.Figure)

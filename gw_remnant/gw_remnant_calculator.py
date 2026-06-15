@@ -18,6 +18,7 @@
 from __future__ import annotations
 __author__ = "Tousif Islam"
 
+import warnings
 import numpy as np
 
 from .remnant_calculators.initial_energy_momenta import InitialEnergyMomenta
@@ -25,11 +26,13 @@ from .remnant_calculators.peak_luminosity_calculator import PeakLuminosityCalcul
 from .remnant_calculators.kick_velocity_calculator import LinearMomentumCalculator
 from .remnant_calculators.remnant_mass_calculator import RemnantMassCalculator
 from .remnant_calculators.remnant_spin_calculator import AngularMomentumCalculator
+from .remnant_calculators.trajectory_calculator import TrajectoryCalculator
 from .gw_utils.gw_plotter import GWPlotter
 
 
 class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCalculator,
-                          LinearMomentumCalculator, RemnantMassCalculator, InitialEnergyMomenta):
+                          TrajectoryCalculator, LinearMomentumCalculator,
+                          RemnantMassCalculator, InitialEnergyMomenta):
     """
     Calculator for remnant properties of binary black hole mergers.
     
@@ -49,14 +52,14 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
     
     Args:
         time (np.ndarray): Array of time values in geometric units (M)
-        hdict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
+        h_dict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
             e.g., {(2,2): h_22(t), (3,3): h_33(t), ...}
-        qinput (float): Mass ratio q = m1/m2, where m1 >= m2
-        spin1_input (list or np.ndarray): Spin vector [sx, sy, sz] for primary black
+        q (float): Mass ratio q = m1/m2, where m1 >= m2
+        chi1 (list or np.ndarray): Spin vector [sx, sy, sz] for primary black
             hole at the start of the waveform, in dimensionless units. Default is None
-        spin2_input (list or np.ndarray): Spin vector [sx, sy, sz] for secondary black
+        chi2 (list or np.ndarray): Spin vector [sx, sy, sz] for secondary black
             hole at the start of the waveform, in dimensionless units. Default is None
-        ecc_input (float): Eccentricity at the reference time. User must provide
+        e_ref (float): Eccentricity at the reference time. User must provide
             accurate value; code does not validate. Default is None
         E_initial (float): Initial energy of the binary in units of total mass M.
             If None, computed using PN expressions. Set to 0 to inspect energy changes
@@ -82,6 +85,7 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
         voft (np.ndarray): Center of mass velocity vector as a function of time [3 x N_times]
         kickoft (np.ndarray): Kick velocity magnitude as a function of time
         remnant_kick (float): Final kick velocity magnitude
+        remnant_kick_vector (np.ndarray): Final kick velocity vector (3,) in units of c
         J_dot (np.ndarray): Time derivative of angular momentum vector [3 x N_times]
         Joft (np.ndarray): Angular momentum vector as a function of time [3 x N_times]
         spinoft (np.ndarray): Dimensionless spin z-component as a function of time
@@ -90,11 +94,14 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
         remnant_spin_vector (np.ndarray): Final remnant dimensionless spin vector (3,)
         L_peak (float): Peak luminosity
         peak_kick (float): Peak kick velocity
-    
+        xoft (np.ndarray): Center-of-mass displacement vector [N_times x 3] in units of M
+        remnant_displacement (np.ndarray): Final center-of-mass displacement vector (3,)
+
     Inherits From:
         GWPlotter: Plotting utilities for visualizing results
         PeakLuminosityCalculator: Peak luminosity calculations
         AngularMomentumCalculator: Angular momentum evolution
+        TrajectoryCalculator: Center-of-mass trajectory
         LinearMomentumCalculator: Linear momentum and kick velocity
         RemnantMassCalculator: Mass and energy calculations
         InitialEnergyMomenta: Initial condition calculations
@@ -102,21 +109,34 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
     Example:
         >>> import numpy as np
         >>> time = np.arange(-1000, 100, 0.1)
-        >>> hdict = {(2,2): h_22_data, (3,3): h_33_data}
-        >>> calc = GWRemnantCalculator(time, hdict, qinput=2.0,
-        ...                           spin1_input=[0, 0, 0.5])
+        >>> h_dict = {(2,2): h_22_data, (3,3): h_33_data}
+        >>> calc = GWRemnantCalculator(time, h_dict, q=2.0,
+        ...                           chi1=[0, 0, 0.5])
         >>> calc.print_remnants()
         >>> calc.plot_mass_energy()
     """
     
-    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
-                 qinput: float, spin1_input: np.ndarray | list[float] | None = None,
-                 spin2_input: np.ndarray | list[float] | None = None,
-                 ecc_input: float | None = None, E_initial: float | None = None,
+    def __init__(self, time: np.ndarray, h_dict: dict[tuple[int, int], np.ndarray],
+                 q: float, chi1: np.ndarray | list[float] | None = None,
+                 chi2: np.ndarray | list[float] | None = None,
+                 e_ref: float | None = None, E_initial: float | None = None,
                  L_initial: float | None = None,
                  M_initial: float = 1, use_filter: bool = False) -> None:
-        super().__init__(time, hdict, qinput, spin1_input, spin2_input,
-                         ecc_input, E_initial, L_initial, M_initial, use_filter)
+        warnings.warn(
+            "Tips: If you are using NR waveforms, ensure that they do not "
+            "contain junk radiation, as that is known to corrupt the remnant "
+            "property estimation.",
+            stacklevel=2,
+        )
+        super().__init__(time, h_dict, q, chi1, chi2,
+                         e_ref, E_initial, L_initial, M_initial, use_filter)
+        if np.linalg.norm(self.remnant_spin_vector) > 1:
+            warnings.warn(
+                "Attention: Final remnant spin is unphysical (|chi_f| > 1). "
+                "Most likely the waveform data includes junk radiation which "
+                "caused this. Check for that.",
+                stacklevel=2,
+            )
 
     def get_remnant_properties(self) -> dict[str, float]:
         """
@@ -135,10 +155,13 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
                 - 'remnant_spin_z': Final dimensionless spin z-component
                 - 'remnant_kick': Final kick velocity in units of c
                 - 'remnant_kick_kmps': Final kick velocity in km/s
+                - 'remnant_kick_x/y/z': Final kick velocity vector components in units of c
                 - 'peak_kick': Peak kick velocity in units of c
+                - 'remnant_displacement_x/y/z': Final center-of-mass displacement
+                    components in units of M
         """
         return {
-            'mass_ratio': self.qinput,
+            'mass_ratio': self.q,
             'M_initial': self.M_initial,
             'E_rad': self.E_rad,
             'L_peak': self.L_peak,
@@ -149,7 +172,13 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
             'remnant_spin_z': self.remnant_spin_vector[2],
             'remnant_kick': self.remnant_kick,
             'remnant_kick_kmps': self.remnant_kick_kmps,
+            'remnant_kick_x': self.remnant_kick_vector[0],
+            'remnant_kick_y': self.remnant_kick_vector[1],
+            'remnant_kick_z': self.remnant_kick_vector[2],
             'peak_kick': self.peak_kick,
+            'remnant_displacement_x': self.remnant_displacement[0],
+            'remnant_displacement_y': self.remnant_displacement[1],
+            'remnant_displacement_z': self.remnant_displacement[2],
         }
 
     def print_remnants(self) -> None:
@@ -163,7 +192,7 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
         print("=" * 50)
         print("Remnant Properties Summary")
         print("=" * 50)
-        print(f"Mass ratio                    : {self.qinput:.3f}")
+        print(f"Mass ratio                    : {self.q:.3f}")
         print(f"Initial mass                  : {self.M_initial:.8f} M")
         print(f"Total energy radiated         : {self.E_rad:.8f} M")
         print(f"Peak luminosity               : {self.L_peak:.8f}")
@@ -173,4 +202,8 @@ class GWRemnantCalculator(GWPlotter, PeakLuminosityCalculator, AngularMomentumCa
               f"{self.remnant_spin_vector[1]:.8f}, {self.remnant_spin_vector[2]:.8f})")
         print(f"Remnant kick velocity         : {self.remnant_kick:.8f} c")
         print(f"Remnant kick velocity         : {self.remnant_kick_kmps:.2f} km/s")
+        print(f"Remnant kick vector (x,y,z)  : ({self.remnant_kick_vector[0]:.8f}, "
+              f"{self.remnant_kick_vector[1]:.8f}, {self.remnant_kick_vector[2]:.8f}) c")
+        print(f"Remnant displacement (x,y,z) : ({self.remnant_displacement[0]:.8f}, "
+              f"{self.remnant_displacement[1]:.8f}, {self.remnant_displacement[2]:.8f}) M")
         print("=" * 50)

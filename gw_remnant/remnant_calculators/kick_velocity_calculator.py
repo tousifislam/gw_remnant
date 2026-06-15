@@ -19,9 +19,11 @@ from __future__ import annotations
 
 import numpy as np
 import scipy.integrate as integrate
-import lal
 
 from .remnant_mass_calculator import RemnantMassCalculator
+
+# Speed of light in m/s (exact, by definition); used to convert kicks to km/s.
+C_SI = 299792458.0
 
 
 class LinearMomentumCalculator(RemnantMassCalculator):
@@ -38,14 +40,14 @@ class LinearMomentumCalculator(RemnantMassCalculator):
     
     Args:
         time (np.ndarray): Array of time values in geometric units (M)
-        hdict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
+        h_dict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
             e.g., {(2,2): h_22(t), (3,3): h_33(t), ...}
-        qinput (float): Mass ratio q = m1/m2, where m1 >= m2
-        spin1_input (list or np.ndarray): Spin vector [sx, sy, sz] for primary black
+        q (float): Mass ratio q = m1/m2, where m1 >= m2
+        chi1 (list or np.ndarray): Spin vector [sx, sy, sz] for primary black
             hole at the start of the waveform, in dimensionless units. Default is None
-        spin2_input (list or np.ndarray): Spin vector [sx, sy, sz] for secondary black
+        chi2 (list or np.ndarray): Spin vector [sx, sy, sz] for secondary black
             hole at the start of the waveform, in dimensionless units. Default is None
-        ecc_input (float): Eccentricity at the reference time. User must provide
+        e_ref (float): Eccentricity at the reference time. User must provide
             accurate value; code does not validate. Default is None
         E_initial (float): Initial energy of the binary in units of total mass M.
             If None, computed using PN expressions. Set to 0 to inspect energy changes
@@ -64,6 +66,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         voft (np.ndarray): Center of mass velocity vector [3 x N_times] in units of c
         kickoft (np.ndarray): Kick velocity magnitude as a function of time in units of c
         remnant_kick (float): Final kick velocity magnitude in units of c
+        remnant_kick_vector (np.ndarray): Final kick velocity vector (3,) in units of c
         peak_kick (float): Peak kick velocity magnitude in units of c
     
     Inherits From:
@@ -73,15 +76,15 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         Kick velocity formulas from arXiv:1802.04276 and arXiv:0707.4654
     """
     
-    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
-                 qinput: float, spin1_input: np.ndarray | list[float] | None = None,
-                 spin2_input: np.ndarray | list[float] | None = None,
-                 ecc_input: float | None = None, E_initial: float | None = None,
+    def __init__(self, time: np.ndarray, h_dict: dict[tuple[int, int], np.ndarray],
+                 q: float, chi1: np.ndarray | list[float] | None = None,
+                 chi2: np.ndarray | list[float] | None = None,
+                 e_ref: float | None = None, E_initial: float | None = None,
                  L_initial: float | None = None,
                  M_initial: float = 1, use_filter: bool = False) -> None:
 
-        super().__init__(time, hdict, qinput, spin1_input, spin2_input,
-                         ecc_input, E_initial, L_initial, M_initial, use_filter)
+        super().__init__(time, h_dict, q, chi1, chi2,
+                         e_ref, E_initial, L_initial, M_initial, use_filter)
 
         self.lmax = self._get_lmax()
         self.P_dot = np.array([self._compute_dPxdt(), self._compute_dPydt(),
@@ -92,6 +95,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         self.kickoft_kmps = self._compute_kickoft_in_kmps()
         self.remnant_kick = self._compute_remnant_kick()
         self.remnant_kick_kmps = self._compute_remnant_kick_in_kmps()
+        self.remnant_kick_vector = self._compute_remnant_kick_vector()
         self.peak_kick = self._compute_peak_kick()
     
     def _read_dhdt_dict(self, l, m):
@@ -115,7 +119,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         elif m < -l or m > l:
             return np.zeros(len(self.time), dtype=complex)
         else:
-            if (l, m) in self.hdict.keys():
+            if (l, m) in self.h_dict.keys():
                 return self.h_dot[l, m]
             else:
                 return np.zeros(len(self.time), dtype=complex)
@@ -127,7 +131,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         Returns:
             [int]: Maximum spherical harmonic degree l present in the waveform.
         """
-        return max([mode[0] for mode in self.hdict.keys()])
+        return max([mode[0] for mode in self.h_dict.keys()])
         
     def _coeffs_a(self, l, m):
         """
@@ -204,7 +208,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
             [np.ndarray]: dPx/dt as a function of time in units of M.
         """
         dPxdt = np.zeros(len(self.time))
-        for mode in self.hdict.keys():
+        for mode in self.h_dict.keys():
             (l, m) = mode
             dPxdt += (1 / (8 * np.pi)) * np.real(
                 self.h_dot[(l, m)] * (
@@ -228,7 +232,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
             [np.ndarray]: dPy/dt as a function of time in units of M.
         """
         dPydt = np.zeros(len(self.time))
-        for mode in self.hdict.keys():
+        for mode in self.h_dict.keys():
             (l, m) = mode
             dPydt += (1 / (8 * np.pi)) * np.imag(
                 self.h_dot[(l, m)] * (
@@ -252,7 +256,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
             [np.ndarray]: dPz/dt as a function of time in units of M.
         """
         dPzdt = np.zeros(len(self.time))
-        for mode in self.hdict.keys():
+        for mode in self.h_dict.keys():
             (l, m) = mode
             dPzdt += (1 / (16 * np.pi)) * np.real(
                 self.h_dot[(l, m)] * (
@@ -322,7 +326,7 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         Returns:
             [np.ndarray]: Kick velocity magnitude as a function of time in units of c.
         """
-        return self.kickoft * lal.C_SI * 1e-3
+        return self.kickoft * C_SI * 1e-3
 
     def _get_peak_via_quadratic_fit(self, t, func):
         """
@@ -389,4 +393,18 @@ class LinearMomentumCalculator(RemnantMassCalculator):
         Returns:
             [float]: Final kick velocity magnitude in units of c.
         """
-        return self.kickoft[-1] * lal.C_SI * 1e-3
+        return self.kickoft[-1] * C_SI * 1e-3
+
+    def _compute_remnant_kick_vector(self):
+        """
+        Compute the final remnant kick velocity vector.
+
+        Returns the center-of-mass velocity vector at the final time, i.e. the
+        recoil imparted to the remnant black hole.
+
+        See Eq. (14) of arXiv:1802.04276.
+
+        Returns:
+            [np.ndarray]: Final kick velocity vector (3,) in units of c.
+        """
+        return self.voft[-1]

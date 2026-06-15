@@ -37,14 +37,14 @@ class PeakLuminosityCalculator(RemnantMassCalculator):
     
     Args:
         time (np.ndarray): Array of time values in geometric units (M)
-        hdict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
+        h_dict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
             e.g., {(2,2): h_22(t), (3,3): h_33(t), ...}
-        qinput (float): Mass ratio q = m1/m2, where m1 >= m2
-        spin1_input (list or np.ndarray): Spin vector [sx, sy, sz] for primary black
+        q (float): Mass ratio q = m1/m2, where m1 >= m2
+        chi1 (list or np.ndarray): Spin vector [sx, sy, sz] for primary black
             hole at the start of the waveform, in dimensionless units. Default is None
-        spin2_input (list or np.ndarray): Spin vector [sx, sy, sz] for secondary black
+        chi2 (list or np.ndarray): Spin vector [sx, sy, sz] for secondary black
             hole at the start of the waveform, in dimensionless units. Default is None
-        ecc_input (float): Eccentricity at the reference time. User must provide
+        e_ref (float): Eccentricity at the reference time. User must provide
             accurate value; code does not validate. Default is None
         E_initial (float): Initial energy of the binary in units of total mass M.
             If None, computed using PN expressions. Set to 0 to inspect energy changes
@@ -66,15 +66,15 @@ class PeakLuminosityCalculator(RemnantMassCalculator):
         Peak luminosity definition from arXiv:2010.00120, Eq. (1)
     """
     
-    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
-                 qinput: float, spin1_input: np.ndarray | list[float] | None = None,
-                 spin2_input: np.ndarray | list[float] | None = None,
-                 ecc_input: float | None = None, E_initial: float | None = None,
+    def __init__(self, time: np.ndarray, h_dict: dict[tuple[int, int], np.ndarray],
+                 q: float, chi1: np.ndarray | list[float] | None = None,
+                 chi2: np.ndarray | list[float] | None = None,
+                 e_ref: float | None = None, E_initial: float | None = None,
                  L_initial: float | None = None,
                  M_initial: float = 1, use_filter: bool = False) -> None:
 
-        super().__init__(time, hdict, qinput, spin1_input, spin2_input,
-                         ecc_input, E_initial, L_initial, M_initial, use_filter)
+        super().__init__(time, h_dict, q, chi1, chi2,
+                         e_ref, E_initial, L_initial, M_initial, use_filter)
         self.L_peak = self._compute_peak_luminosity()
     
     def _get_peaks_via_spline_fit(self, t, func):

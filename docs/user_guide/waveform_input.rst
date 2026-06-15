@@ -21,7 +21,7 @@ arrays matching the time array in length:
 
    time = np.arange(-5000, 50, 0.1)  # geometric units (M)
 
-   hdict = {
+   h_dict = {
        (2, 2):  h22,   # complex array, same length as time
        (2, -2): h2m2,
        (3, 3):  h33,
@@ -29,7 +29,7 @@ arrays matching the time array in length:
        # ... add more modes as available
    }
 
-   calc = GWRemnantCalculator(time, hdict, qinput=4.0)
+   calc = GWRemnantCalculator(time, h_dict, q=4.0)
 
 Built-in waveform generators
 -----------------------------
@@ -48,8 +48,8 @@ Aligned-spin model valid for mass ratios 1 <= *q* <= 10:
    import gwsurrogate
    from gw_remnant.gw_utils import waveform_generator as wg
 
-   times, hdict = wg.generate_nrhybsur3dq8(
-       gwsurrogate, mass_ratio=3.0, chi1=[0, 0, 0.5]
+   times, h_dict = wg.generate_nrhybsur3dq8(
+       gwsurrogate, q=3.0, chi1=[0, 0, 0.5]
    )
 
 BHPTNRSur1dq1e4
@@ -62,7 +62,7 @@ Non-spinning model valid for 1 <= *q* <= 10 000:
    import BHPTNRSur1dq1e4 as bhptsur
    from gw_remnant.gw_utils import waveform_generator as wg
 
-   times, hdict = wg.generate_bhptnrsur1dq1e4(bhptsur, mass_ratio=100.0)
+   times, h_dict = wg.generate_bhptnrsur1dq1e4(bhptsur, q=100.0)
 
 BHPTNRSur2dq1e3
 ^^^^^^^^^^^^^^^^
@@ -74,8 +74,8 @@ Spinning model valid for 1 <= *q* <= 1000 and \|chi\| <= 0.8:
    import BHPTNRSur2dq1e3 as bhptsur
    from gw_remnant.gw_utils import waveform_generator as wg
 
-   times, hdict = wg.generate_bhptnrsur2dq1e3(
-       bhptsur, mass_ratio=100.0, spin=0.5
+   times, h_dict = wg.generate_bhptnrsur2dq1e3(
+       bhptsur, q=100.0, spin=0.5
    )
 
 Tips

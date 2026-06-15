@@ -14,11 +14,17 @@ With optional waveform surrogates:
 
    pip install gw_remnant[surrogates]
 
-With LAL libraries (needed for kick velocity in km/s):
+With numerical relativity catalog access:
 
 .. code-block:: bash
 
-   pip install gw_remnant[lal]
+   pip install gw_remnant[nr]
+
+With effective-one-body waveforms:
+
+.. code-block:: bash
+
+   pip install gw_remnant[eob]
 
 Install everything:
 
@@ -35,16 +41,47 @@ From source (development)
    cd gw_remnant
    pip install -e .[dev]
 
-Requirements
+Dependencies
 ------------
 
-- Python >= 3.8
-- numpy >= 1.20.0
-- scipy >= 1.7.0
-- matplotlib >= 3.3.0
-- `gwtools <https://pypi.org/project/gwtools/>`_
+The following packages are required and will be installed automatically:
+
+* `numpy <https://numpy.org/>`_ >= 1.20.0
+* `scipy <https://scipy.org/>`_ >= 1.7.0
+* `matplotlib <https://matplotlib.org/>`_ >= 3.3.0
+* `gwtools <https://pypi.org/project/gwtools/>`_
 
 Optional dependencies:
 
-- ``gwsurrogate``, ``surfinBH`` -- for built-in waveform generation
-- ``lal``, ``lalsimulation`` -- for converting kick velocity to km/s
+.. list-table::
+   :header-rows: 1
+   :widths: 30 30 40
+
+   * - Install option
+     - Packages
+     - Purpose
+   * - ``[surrogates]``
+     - gwsurrogate, surfinBH
+     - Waveform surrogate models and remnant fits
+   * - ``[nr]``
+     - sxs, mayawaves
+     - Numerical relativity catalog access
+   * - ``[eob]``
+     - pyseobnr
+     - Effective-one-body waveforms
+   * - ``[all]``
+     - All of the above
+     - All non-dev optional dependencies
+
+Building the documentation
+--------------------------
+
+To build the documentation locally:
+
+.. code-block:: bash
+
+   pip install gw_remnant[docs]
+   cd docs
+   make html
+
+The built documentation will be in ``docs/_build/html/``.

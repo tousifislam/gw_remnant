@@ -9,9 +9,23 @@
 #
 #   Description
 #   -----------
-#   Computes initial energy and angular momentum for binary black hole systems
-#   using post-Newtonian expressions. Supports non-spinning, spinning, and
-#   eccentric binaries up to 4PN order.
+#   Computes the initial orbital binding energy and angular momentum of a binary
+#   black hole system using post-Newtonian (PN) expressions.
+#
+#   The default expressions are taken from the SEOBNRv5EHM orbit-averaged,
+#   PN-expanded energy and angular momentum (valid for eccentric orbits and
+#   aligned spins to 3PN), supplemented by the analytic 4PN and NR-calibrated 5PN
+#   non-spinning circular terms:
+#
+#     - A. Gamboa, M. Khalil, A. Buonanno, "Third post-Newtonian dynamics for
+#       eccentric orbits and aligned spins in the effective-one-body waveform
+#       model SEOBNRv5EHM", arXiv:2412.12823. (Orbit-averaged binding energy
+#       ``Heob`` and angular momentum ``Leob``, supplementary file
+#       EOB_Keplerian.dat.m.)
+#     - M. Khalil et al., "Theoretical groundwork ... SEOBNRv5", arXiv:2303.18143.
+#       (Analytic 4PN non-spinning circular energy/angular momentum, ``ES0``/``LS0``.)
+#     - A. Le Tiec, L. Blanchet, B. F. Whiting, arXiv:1111.5378.
+#       (NR-calibrated pseudo-5PN coefficients, Table II and Eqs. (4.24), (2.49).)
 #
 #====================================================================================
 
@@ -23,83 +37,91 @@ import gwtools
 
 class InitialEnergyMomenta:
     """
-    Calculator for initial energy and angular momentum of binary black holes.
-    
-    This class computes the initial orbital energy and angular momentum of a
-    binary black hole system using post-Newtonian (PN) approximations. It supports:
-    - Non-spinning circular binaries (up to 4PN)
-    - Spinning binaries (up to 3PN with spin corrections)
-    - Eccentric binaries (up to 3PN with eccentricity corrections)
-    
-    Initial conditions can be either computed from PN expressions or provided
-    directly by the user (e.g., from numerical relativity simulations).
-    
+    Calculator for the initial orbital energy and angular momentum of a binary.
+
+    Computes the initial orbital binding energy and orbital angular momentum of a
+    binary black hole using post-Newtonian (PN) approximations. The defaults are
+    valid for:
+      - non-spinning circular binaries to 5PN (analytic 4PN + NR-calibrated 5PN);
+      - aligned-spin binaries to 3PN (spin-orbit and spin-spin);
+      - eccentric binaries to 3PN (including spin x eccentricity cross terms).
+
+    Initial conditions can either be computed from the PN expressions above or be
+    supplied directly by the user (e.g. read from numerical-relativity metadata).
+
+    Sign conventions (geometric units, G = c = 1):
+      - ``E_initial`` is the POSITIVE binding-energy magnitude, E_initial = -E_bind,
+        so that the ADM mass is M_ADM = M_initial - E_initial. To use an NR value
+        pass ``E_initial = M_initial - M_ADM`` (= 1 - initial_ADM_energy for unit
+        total mass).
+      - ``L_initial`` is the orbital angular momentum magnitude (in units of M^2).
+
     Args:
         time (np.ndarray): Array of time values in geometric units (M)
-        hdict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
+        h_dict (dict): Dictionary of complex waveform modes with (l,m) tuple keys,
             e.g., {(2,2): h_22(t), (3,3): h_33(t), ...}
-        qinput (float): Mass ratio q = m1/m2, where m1 >= m2
-        spin1_input (list or np.ndarray): Spin vector [sx, sy, sz] for primary black
-            hole at reference time, in dimensionless units. Default is None (no spin)
-        spin2_input (list or np.ndarray): Spin vector [sx, sy, sz] for secondary black
-            hole at reference time, in dimensionless units. Default is None (no spin)
-        ecc_input (float): Eccentricity at reference time. User must provide accurate
-            value; code does not validate. Default is None (circular orbit)
-        E_initial (float): Initial energy in units of total mass M. If None, computed
-            using PN expressions. Set to 0 to track energy changes relative to reference.
-            Default is None
-        L_initial (float): Initial angular momentum in units of M^2. If None, computed
-            using PN expressions. Set to 0 to track angular momentum changes relative
-            to reference. Default is None
-    
+        q (float): Mass ratio q = m1/m2, where m1 >= m2
+        chi1 (list or np.ndarray): Spin vector [sx, sy, sz] for the primary
+            black hole at the reference time, dimensionless. Only the aligned
+            (z) component enters the PN energy/angular momentum. Default None.
+        chi2 (list or np.ndarray): Spin vector [sx, sy, sz] for the secondary
+            black hole at the reference time, dimensionless. Default None.
+        e_ref (float): Eccentricity at the reference time. Default None (circular).
+        E_initial (float): Initial binding-energy magnitude in units of total mass M.
+            If None, computed from the PN expressions. Set to 0 to track energy
+            changes relative to the reference. Default None.
+        L_initial (float): Initial orbital angular momentum in units of M^2. If None,
+            computed from the PN expressions. Set to 0 to track angular momentum
+            changes relative to the reference. Default None.
+
     Attributes:
         time (np.ndarray): Time array
-        hdict (dict): Waveform mode dictionary
-        qinput (float): Mass ratio
-        spin1_input (np.ndarray): Primary spin vector
-        spin2_input (np.ndarray): Secondary spin vector
-        ecc_input (float): Eccentricity
-        E_initial (float): Initial orbital energy
+        h_dict (dict): Waveform mode dictionary
+        q (float): Mass ratio
+        chi1 (np.ndarray): Primary spin vector
+        chi2 (np.ndarray): Secondary spin vector
+        e_ref (float): Eccentricity
+        E_initial (float): Initial orbital binding-energy magnitude
         L_initial (float): Initial orbital angular momentum
     """
-    
-    def __init__(self, time: np.ndarray, hdict: dict[tuple[int, int], np.ndarray],
-                 qinput: float, spin1_input: np.ndarray | list[float] | None = None,
-                 spin2_input: np.ndarray | list[float] | None = None,
-                 ecc_input: float | None = None, E_initial: float | None = None,
+
+    def __init__(self, time: np.ndarray, h_dict: dict[tuple[int, int], np.ndarray],
+                 q: float, chi1: np.ndarray | list[float] | None = None,
+                 chi2: np.ndarray | list[float] | None = None,
+                 e_ref: float | None = None, E_initial: float | None = None,
                  L_initial: float | None = None) -> None:
 
-        # --- Input validation ---
-        self._validate_inputs(time, hdict, qinput, spin1_input, spin2_input, ecc_input)
+        # Input validation
+        self._validate_inputs(time, h_dict, q, chi1, chi2, e_ref)
 
         # read waveforms
         self.time = time
-        self.hdict = hdict
+        self.h_dict = h_dict
         # Ensure negative m modes are present using symmetry relation
-        for mode in list(self.hdict.keys()):
-            if mode[1] != 0 and (mode[0], -mode[1]) not in self.hdict:
-                self.hdict[(mode[0], -mode[1])] = (-1)**mode[0] * np.conjugate(self.hdict[mode])
+        for mode in list(self.h_dict.keys()):
+            if mode[1] != 0 and (mode[0], -mode[1]) not in self.h_dict:
+                self.h_dict[(mode[0], -mode[1])] = (-1)**mode[0] * np.conjugate(self.h_dict[mode])
 
         # Mass ratio
-        self.qinput = qinput
+        self.q = q
 
         # Spin vectors : primary black hole
-        if spin1_input is None:
-            self.spin1_input = np.array([0.0, 0.0, 0.0])
+        if chi1 is None:
+            self.chi1 = np.array([0.0, 0.0, 0.0])
         else:
-            self.spin1_input = np.array(spin1_input)
+            self.chi1 = np.array(chi1)
 
         # Spin vectors : secondary black hole
-        if spin2_input is None:
-            self.spin2_input = np.array([0.0, 0.0, 0.0])
+        if chi2 is None:
+            self.chi2 = np.array([0.0, 0.0, 0.0])
         else:
-            self.spin2_input = np.array(spin2_input)
+            self.chi2 = np.array(chi2)
 
         # Eccentricity
-        if ecc_input is None:
-            self.ecc_input = 0.0
+        if e_ref is None:
+            self.e_ref = 0.0
         else:
-            self.ecc_input = ecc_input
+            self.e_ref = e_ref
 
         # Cache PN expansion parameter and symmetric mass ratio (used by all PN methods)
         self._x0, self._nu = self._compute_initial_pn_parameter()
@@ -112,27 +134,38 @@ class InitialEnergyMomenta:
 
         # Initial angular momentum
         if L_initial is None:
-            self.L_initial = self._L0_from_PN_nonspinning()
+            self.L_initial = self._L0_from_PN()
         else:
             self.L_initial = L_initial
-        
+
     def _compute_initial_pn_parameter(self):
-        """Compute the PN expansion parameter x = (M*omega)^(2/3) and symmetric mass ratio nu
-        from the initial orbital frequency of the (2,2) mode.
+        """Compute the PN expansion parameter x = (M*omega)^(2/3) and symmetric mass
+        ratio nu from the initial orbital frequency of the (2,2) mode.
+
+        For eccentric orbits the instantaneous GW frequency oscillates between
+        periastron and apastron.  Averaging over one estimated orbital period
+        recovers the mean motion; for circular orbits this is a no-op.
 
         Returns:
             tuple: (x0, nu) where x0 is the PN parameter at the start of the waveform
                 and nu is the symmetric mass ratio.
         """
-        orb_phase = 0.5 * gwtools.phase(self.hdict[(2, 2)])
+        orb_phase = 0.5 * gwtools.phase(self.h_dict[(2, 2)])
         orb_frequency = abs(np.gradient(orb_phase, edge_order=2) /
                            np.gradient(self.time, edge_order=2))
-        x0 = orb_frequency[0]**(2/3)
-        nu = gwtools.q_to_nu(self.qinput)
+
+        # Average over ~1 orbital period to handle eccentric oscillations
+        T_orb = 2 * np.pi / orb_frequency[0]
+        idx_end = np.searchsorted(self.time, self.time[0] + T_orb)
+        idx_end = max(2, min(idx_end, len(self.time) - 1))
+        omega_mean = np.mean(orb_frequency[:idx_end])
+
+        x0 = omega_mean**(2/3)
+        nu = gwtools.q_to_nu(self.q)
         return x0, nu
 
     @staticmethod
-    def _validate_inputs(time, hdict, qinput, spin1_input, spin2_input, ecc_input):
+    def _validate_inputs(time, h_dict, q, chi1, chi2, e_ref):
         """Validate user inputs and raise ValueError on invalid data."""
         # Time array
         if len(time) < 2:
@@ -142,20 +175,20 @@ class InitialEnergyMomenta:
             raise ValueError("Time array must be monotonically increasing.")
 
         # Required (2,2) mode
-        if (2, 2) not in hdict:
+        if (2, 2) not in h_dict:
             raise ValueError(
                 "Waveform dictionary must contain the (2,2) mode. "
-                f"Available modes: {list(hdict.keys())}"
+                f"Available modes: {list(h_dict.keys())}"
             )
 
         # Mass ratio
-        if qinput < 1:
+        if q < 1:
             raise ValueError(
-                f"Mass ratio q must be >= 1 (q = m1/m2 with m1 >= m2), got q={qinput}."
+                f"Mass ratio q must be >= 1 (q = m1/m2 with m1 >= m2), got q={q}."
             )
 
         # Spin magnitudes
-        for label, spin in [("spin1_input", spin1_input), ("spin2_input", spin2_input)]:
+        for label, spin in [("chi1", chi1), ("chi2", chi2)]:
             if spin is not None:
                 spin_arr = np.asarray(spin)
                 if spin_arr.shape != (3,):
@@ -171,347 +204,253 @@ class InitialEnergyMomenta:
                     )
 
         # Eccentricity
-        if ecc_input is not None:
-            if ecc_input < 0 or ecc_input >= 1:
+        if e_ref is not None:
+            if e_ref < 0 or e_ref >= 1:
                 raise ValueError(
-                    f"Eccentricity must satisfy 0 <= e < 1, got e={ecc_input}."
+                    f"Eccentricity must satisfy 0 <= e < 1, got e={e_ref}."
                 )
 
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+    def _spin_combinations(self):
+        """Symmetric/antisymmetric spin and mass-difference combinations.
+
+        Only the aligned (z) components of the spins enter the orbit-averaged PN
+        energy and angular momentum.
+
+        Returns:
+            tuple: (delta, chiS, chiA) where delta = (m1-m2)/M,
+                chiS = (chi1z + chi2z)/2 and chiA = (chi1z - chi2z)/2.
+        """
+        chi1z = self.chi1[2]
+        chi2z = self.chi2[2]
+        delta = gwtools.q_to_delta(self.q)
+        chiS = 0.5 * (chi1z + chi2z)
+        chiA = 0.5 * (chi1z - chi2z)
+        return delta, chiS, chiA
+
+    # ------------------------------------------------------------------
+    # Binding energy
+    # ------------------------------------------------------------------
     def _E0_from_PN(self):
         """
-        Compute initial energy using post-Newtonian expressions.
-        
-        Combines 4PN non-spinning circular terms with 3PN eccentric and spinning
-        corrections to compute the initial orbital energy. This is the most complete
-        expression available in the class.
-        
-        References are from:
-        - Eq. (2.35) of https://arxiv.org/pdf/1111.5378.pdf (circular non-spinning 4PN, 5PN)
-        - Eq. (3) of https://arxiv.org/pdf/2304.11185.pdf (4PN coefficient)
-        - Eq. (6.1a) and (6.5a) of https://arxiv.org/pdf/0908.3854.pdf (eccentric 3PN)
-        
-        Returns:
-            [float]: Initial orbital energy in units of total mass M.
-        """
-        x = self._x0
-        nu = self._nu
-        delta = gwtools.q_to_delta(self.qinput)
+        Compute the initial binding-energy magnitude E_initial (positive).
 
-        chi_s = (self.spin1_input + self.spin2_input) / 2
-        chi_a = (self.spin1_input - self.spin2_input) / 2
-        L_N = np.array([0, 0, 1])
-        
-        # 1.5PN and 2.5PN spinning corrections
-        term_15 = ((8/3 - 4/3 * nu) * np.dot(chi_s, L_N) + 
-                   (8/3) * delta * np.dot(chi_a, L_N)) * x**(1.5)
-        term_25 = ((8 - 121/9 * nu + 2/9 * nu**2) * np.dot(chi_s, L_N) + 
-                   (8 - 31/9 * nu) * delta * np.dot(chi_a, L_N)) * x**2.5
-        
-        # 1PN with eccentricity
-        term_1 = (x / (1 - self.ecc_input**2) * 
-                 (-3/4 - nu/12 + self.ecc_input**2 * (-5/4 + nu/12)))
-        
-        # 2PN with eccentricity and spin-orbit/spin-spin
-        term_2 = (x**2 / (1 - self.ecc_input**2)**2 * 
-                 (-67/8 + 35/8 * nu - 1/24 * nu**2 + 
-                  self.ecc_input**2 * (-19/4 + 21/4 * nu + 1/12 * nu**2) +
-                  self.ecc_input**4 * (5/8 - 5/8 * nu - 1/24 * nu**2) +
-                  (1 - self.ecc_input**2)**(3/2) * (5 - 2 * nu)) + 
-                 x**2 * nu * ((np.dot(chi_s, chi_s) - np.dot(chi_a, chi_a)) - 
-                             3 * ((np.dot(chi_s, L_N))**2 - (np.dot(chi_a, L_N))**2)) + 
-                 (1/2 - nu) * (np.dot(chi_s, chi_s) + np.dot(chi_a, chi_a) - 
-                              3 * ((np.dot(chi_s, L_N))**2 + (np.dot(chi_a, L_N))**2)) + 
-                 delta * (np.dot(chi_s, chi_a) - 3 * np.dot(chi_s, L_N) * np.dot(chi_a, L_N)))
-        
-        # 3PN with eccentricity
-        term_3 = (x**3 / (1 - self.ecc_input**2)**3 * 
-                 (-835/64 + (18319/192 - 41/16 * np.pi**2) * nu - 
-                  169/32 * nu**2 - 35/5184 * nu**3 +
-                  self.ecc_input**2 * (-3703/64 + (21235/192 - 41/64 * np.pi**2) * nu - 
-                                      7733/288 * nu**2 + 35/1728 * nu**3) +
-                  self.ecc_input**4 * (103/64 - 547/192 * nu - 1355/288 * nu**2 - 35/1728 * nu**3) +
-                  self.ecc_input**6 * (185/192 + 75/64 * nu + 25/288 * nu**2 + 35/5184 * nu**3) +
-                  np.sqrt(1 - self.ecc_input**2) * 
-                  (5/2 + (-641/18 + 41/96 * np.pi**2) * nu + 11/3 * nu**2 + 
-                   self.ecc_input**2 * (-35 + (394/9 - 41/96 * np.pi**2) * nu - 1/3 * nu**2) +
-                   self.ecc_input**4 * (5/2 + 23/6 * nu - 10/3 * nu**2))))
+        Combines the orbit-averaged 3PN energy (eccentric, aligned spin) with the
+        analytic 4PN and NR-calibrated 5PN non-spinning circular terms. The return
+        value is E_initial = -E_bind = -nu * Ehat, where Ehat = E_bind/mu is the
+        binding energy per reduced mass (negative for a bound system), so that the
+        ADM mass is M_ADM = M_initial - E_initial.
 
-        # 4PN circular non-spinning
-        term_4 = (-3969/128 + (-123671/5760 + 9037/1536 * np.pi**2 + 
-                   896/15 * np.euler_gamma + 448/15 * np.log(16 * x)) * nu +
-                  (-498449/3456 + 3157/576 * np.pi**2) * nu**2 +
-                  301/1728 * nu**3 + 77/31104 * nu**4) * x**4
-
-        # Pseudo-PN term (5PN)
-        # Table II of https://arxiv.org/pdf/1111.5378.pdf
-        gamma5 = -37.72
-        # Eq. (4.24b) of https://arxiv.org/pdf/1111.5378.pdf
-        e5 = 3*gamma5 + 9359293/161280
-        # Eq. (2.35) of https://arxiv.org/pdf/1111.5378.pdf (5PN structure)
-        term_5 = ((45927/512 + nu*e5 + (4988/35 - 656*nu/5)*nu*np.log(x)) * x**5)
-        
-        return 0.5 * nu * x * (1 + term_1 + term_15 + term_2 + term_25 + term_3 + term_4 + term_5)
-    
-    def _E0_from_PN_nonspinning(self):
-        """
-        Compute initial energy for non-spinning circular binaries.
-        
-        Uses post-Newtonian expressions up to 5PN order for non-spinning circular
-        binaries. Includes 4PN standard PN terms and 5PN pseudo-PN terms calibrated
-        to numerical relativity simulations.
-        
-        The calculation combines:
-        1. Standard PN expansion (1PN-4PN) from analytical calculations
-        2. Pseudo-PN term (5PN) calibrated to NR simulations
-        
         References:
-        - Eq. (2.35) of https://arxiv.org/pdf/1111.5378.pdf (PN framework)
-        - Eq. (3) of https://arxiv.org/pdf/2304.11185.pdf (4PN terms)
-        - Table II of https://arxiv.org/pdf/1111.5378.pdf (pseudo-PN parameters)
-        - Eq. (4.24b) of https://arxiv.org/pdf/1111.5378.pdf (energy coefficient)
-        
+            - SEOBNRv5EHM ``Heob`` (arXiv:2412.12823) for the 3PN base.
+            - arXiv:2303.18143 ``ES0`` and arXiv:1111.5378 for the 4PN/5PN terms.
+
         Returns:
-            [float]: Initial orbital energy in units of total mass M.
+            [float]: Initial binding-energy magnitude in units of total mass M.
+        """
+        Ehat = (self._binding_energy_hat_3PN()
+                + self._binding_energy_hat_nonspinning_4PN5PN())
+        return -self._nu * Ehat
+
+    def _binding_energy_hat_3PN(self):
+        """
+        Orbit-averaged binding energy per reduced mass, Ehat = E_bind/mu, to 3PN.
+
+        Translation of the conservative (Cos/Sin[zeta]-averaged) part of the
+        SEOBNRv5EHM ``Heob`` expression for eccentric orbits and aligned spins,
+        with black-hole spin-induced quadrupole constants (kappa = 1). Valid for
+        non-spinning, aligned-spin, and eccentric binaries.
+
+        See ``Heob`` (Eq. block "Energy / Hamiltonian") of arXiv:2412.12823.
+
+        Returns:
+            [float]: Binding energy per reduced mass (negative for bound systems).
         """
         x = self._x0
         nu = self._nu
+        e = self.e_ref
+        delta, chiS, chiA = self._spin_combinations()
+        om = 1.0 - e**2
 
-        # Standard PN terms (1PN-4PN)
-        # Eq. (3) of https://arxiv.org/pdf/2304.11185.pdf
-        term_1 = (-3/4 - nu/12) * x
-        term_2 = (-27/8 + 19*nu/8 - nu**2/24) * x**2
-        term_3 = ((-675/64 + (34445/576 - 205*np.pi**2/96)*nu - 
-                  144*nu**2/96 - 35*nu**3/5184) * x**3)
-        term_4 = ((-3969/128 + (-123671/5760 + 9037/1536 * np.pi**2 + 
-                   896/15 * np.euler_gamma + 448/15 * np.log(16 * x)) * nu +
-                  (-498449/3456 + 3157/576 * np.pi**2) * nu**2 +
-                  301/1728 * nu**3 + 77/31104 * nu**4) * x**4)
-        
-        # Pseudo-PN term (5PN)
-        # Table II of https://arxiv.org/pdf/1111.5378.pdf
-        gamma5 = -37.72
-        # Eq. (4.24b) of https://arxiv.org/pdf/1111.5378.pdf
-        e5 = 3*gamma5 + 9359293/161280
-        # Eq. (2.35) of https://arxiv.org/pdf/1111.5378.pdf (5PN structure)
-        term_5 = ((45927/512 + nu*e5 + (4988/35 - 656*nu/5)*nu*np.log(x)) * x**5)
-        
-        # FIXED: Include term_5 in the return!
-        return 0.5 * nu * x * (1 + term_1 + term_2 + term_3 + term_4 + term_5)
+        # non-spinning: 0PN, 1PN, 2PN, 3PN
+        E = -x / 2
+        E += (x**2 * (9 - e**2 * (-15 + nu) + nu)) / (24 * om)
+        E += (x**3 * (201 - 105 * nu + nu**2 + 24 * om**1.5 * (-5 + 2 * nu)
+                      + e**4 * (-15 + 15 * nu + nu**2)
+                      - 2 * e**2 * (87 + 15 * nu + nu**2))) / (48 * om**2)
+        E += -(x**4 * (-67635 - 27 * (-18319 + 492 * np.pi**2) * nu - 27378 * nu**2
+                       - 35 * nu**3 + 5 * e**6 * (999 + 1215 * nu + 90 * nu**2 + 7 * nu**3)
+                       + 3 * e**2 * (55539 - 9 * (-1651 + 123 * np.pi**2) * nu
+                                     - 6078 * nu**2 + 35 * nu**3)
+                       - 3 * e**4 * (33507 - 261 * nu + 66 * nu**2 + 35 * nu**3)
+                       + 18 * om**1.5 * (720 + (-10256 + 123 * np.pi**2) * nu + 1056 * nu**2
+                                         + 48 * e**2 * (-105 + 43 * nu + 8 * nu**2)))) / (10368 * om**3)
 
-    
-    def _E0_from_PN_nonspinning_eccentric(self):
-        """
-        Compute initial energy for non-spinning eccentric binaries.
-        
-        Uses 3PN post-Newtonian expressions with eccentricity corrections for
-        non-spinning binaries. The calculation includes terms up to e^6 in the
-        eccentricity expansion at each PN order.
-        
-        The energy is computed in terms of the dimensionless binding energy
-        ε = -E/(μc²), where μ is the reduced mass. Each PN order includes
-        corrections for both the PN parameter x and eccentricity e.
-        
-        References:
-        - Eq. (6.1a) of https://arxiv.org/pdf/0908.3854.pdf (energy definition)
-        - Eq. (6.5a) of https://arxiv.org/pdf/0908.3854.pdf (3PN eccentric expansion)
-        
-        Returns:
-            [float]: Initial orbital energy in units of total mass M.
-        """
-        x = self._x0
-        nu = self._nu
-
-        # 1PN term with eccentricity corrections up to e^2
-        # Eq. (6.5a) of https://arxiv.org/pdf/0908.3854.pdf
-        term1 = (x / (1 - self.ecc_input**2) * 
-                (-3/4 - nu/12 + self.ecc_input**2 * (-5/4 + nu/12)))
-        
-        # 2PN term with eccentricity corrections up to e^4
-        # Includes tidal deformation term (1 - e²)^(3/2)
-        term2 = (x**2 / (1 - self.ecc_input**2)**2 * 
-                (-67/8 + 35/8 * nu - 1/24 * nu**2 +
-                 self.ecc_input**2 * (-19/4 + 21/4 * nu + 1/12 * nu**2) +
-                 self.ecc_input**4 * (5/8 - 5/8 * nu - 1/24 * nu**2) +
-                 (1 - self.ecc_input**2)**(3/2) * (5 - 2 * nu)))
-        
-        # 3PN term with eccentricity corrections up to e^6
-        # Most complex term with multiple eccentricity-dependent contributions
-        term3 = (x**3 / (1 - self.ecc_input**2)**3 * 
-                (-835/64 + (18319/192 - 41/16 * np.pi**2) * nu - 
-                 169/32 * nu**2 - 35/5184 * nu**3 +
-                 self.ecc_input**2 * (-3703/64 + (21235/192 - 41/64 * np.pi**2) * nu - 
-                                     7733/288 * nu**2 + 35/1728 * nu**3) +
-                 self.ecc_input**4 * (103/64 - 547/192 * nu - 1355/288 * nu**2 - 35/1728 * nu**3) +
-                 self.ecc_input**6 * (185/192 + 75/64 * nu + 25/288 * nu**2 + 35/5184 * nu**3) +
-                 np.sqrt(1 - self.ecc_input**2) * 
-                 (5/2 + (-641/18 + 41/96 * np.pi**2) * nu + 11/3 * nu**2 + 
-                  self.ecc_input**2 * (-35 + (394/9 - 41/96 * np.pi**2) * nu - 1/3 * nu**2) +
-                  self.ecc_input**4 * (5/2 + 23/6 * nu - 10/3 * nu**2))))
-        
-        # Dimensionless binding energy parameter ε
-        # Eq. (6.1a) of https://arxiv.org/pdf/0908.3854.pdf
-        epsilon = x * (1 + term1 + term2 + term3)
-        
-        # Convert to energy E = -μc²ε = -(1/2)νMc²ε
-        # Eq. (6.5a) of https://arxiv.org/pdf/0908.3854.pdf
-        E = 0.5 * nu * epsilon
-        
+        # spin-orbit: 1.5PN
+        E += (2 * x**2.5 * (-2 * delta * chiA + (-2 + nu) * chiS)) / (3 * om**1.5)
+        # spin-spin: 2PN
+        E += (x**3 * ((1 - 4 * nu) * chiA**2 + 2 * delta * chiA * chiS + chiS**2)) / (2 * om**2)
+        # spin-orbit: 2.5PN
+        E += (x**3.5 * (delta * (-144 + 55 * nu + 8 * e**2 * (21 + nu)) * chiA
+                        + (-144 + 217 * nu - 14 * nu**2 - 4 * e**2 * (-42 + 10 * nu + nu**2)) * chiS
+                        + om**1.5 * (-24 * delta * (-3 + nu) * chiA
+                                     + 12 * (6 - 8 * nu + nu**2) * chiS))) / (18 * om**2.5)
+        # spin-spin: 3PN
+        E += (x**4 * ((197 - 857 * nu + 132 * nu**2 + 3 * e**2 * (-117 + 461 * nu + 16 * nu**2)) * chiA**2
+                      - 2 * delta * (-197 + 253 * nu + 3 * e**2 * (117 + nu)) * chiA * chiS
+                      + (197 - 437 * nu + 128 * nu**2 + 3 * e**2 * (-117 + 5 * nu)) * chiS**2
+                      + om**1.5 * (-12 * (11 - 46 * nu + 6 * nu**2) * chiA**2
+                                   + 24 * delta * (-11 + 9 * nu) * chiA * chiS
+                                   - 12 * (11 - 16 * nu + 4 * nu**2) * chiS**2))) / (36 * om**3)
         return E
 
-    
-    def _E0_from_PN_spinning_(self):
+    def _binding_energy_hat_nonspinning_4PN5PN(self):
         """
-        Compute initial energy for spinning circular binaries.
-        
-        Uses 3PN post-Newtonian expressions with spin corrections for circular
-        binaries. Includes spin-orbit and spin-spin coupling terms.
-        
-        Note: Method name has trailing underscore, suggesting it may be deprecated
-        or under development. Consider using _E0_from_PN() instead.
-        
+        Analytic 4PN and NR-calibrated 5PN non-spinning circular terms of the
+        binding energy per reduced mass, beyond the 3PN base.
+
+        These are the x^4 and x^5 corrections to Ehat = -x/2 (1 + e1 x + ...); the
+        4PN coefficient is the exact analytic term (arXiv:2303.18143 ``ES0``), the
+        5PN term is the NR-calibrated pseudo-PN coefficient of arXiv:1111.5378.
+        Returns 0 for eccentric orbits (the 4PN/5PN eccentricity corrections are
+        not implemented).
+
         Returns:
-            [float]: Initial orbital energy in units of total mass M.
+            [float]: 4PN+5PN non-spinning circular contribution to E_bind/mu.
         """
+        if self.e_ref != 0.0:
+            return 0.0
         x = self._x0
         nu = self._nu
-        delta = gwtools.q_to_delta(self.qinput)
+        gamma = np.euler_gamma
+        log2 = np.log(2.0)
 
-        chi_s = (self.spin1_input + self.spin2_input) / 2
-        chi_a = (self.spin1_input - self.spin2_input) / 2
-        L_N = np.array([0, 0, 1]) 
-                
-        term_1 = (-3/4 - nu/12) * x
-        term_15 = ((8/3 - 4/3 * nu) * np.dot(chi_s, L_N) + 
-                   (8/3) * delta * np.dot(chi_a, L_N)) * x**(1.5)
-        term_2 = ((-27/8 + 19*nu/8 - nu**2/24) * x**2 + 
-                 x**2 * nu * ((np.dot(chi_s, chi_s) - np.dot(chi_a, chi_a)) - 
-                             3 * ((np.dot(chi_s, L_N))**2 - (np.dot(chi_a, L_N))**2)) + 
-                 (1/2 - nu) * (np.dot(chi_s, chi_s) + np.dot(chi_a, chi_a) - 
-                              3 * ((np.dot(chi_s, L_N))**2 + (np.dot(chi_a, L_N))**2)) + 
-                 delta * (np.dot(chi_s, chi_a) - 3 * np.dot(chi_s, L_N) * np.dot(chi_a, L_N)))
-        term_25 = ((8 - 121/9 * nu + 2/9 * nu**2) * np.dot(chi_s, L_N) + 
-                   (8 - 31/9 * nu) * delta * np.dot(chi_a, L_N)) * x**2
-        term_3 = ((-675/64 + (34445/576 - 205*np.pi**2/96)*nu - 
-                  144*nu**2/96 - 35*nu**3/5184) * x**3)
-        
-        return 0.5 * nu * x * (1 + term_1 + term_15 + term_2 + term_25 + term_3)
+        # 4PN (analytic), Eq. (3) of arXiv:2304.11185 / ES0 of arXiv:2303.18143
+        e4 = (-3969/128
+              + (-123671/5760 + 9037/1536 * np.pi**2 + 896/15 * gamma
+                 + 448/15 * np.log(16 * x)) * nu
+              + (-498449/3456 + 3157/576 * np.pi**2) * nu**2
+              + 301/1728 * nu**3 + 77/31104 * nu**4)
 
-    
-    def _L0_from_PN_nonspinning(self):
-        """
-        Compute initial orbital angular momentum for non-spinning binaries.
-        
-        Uses post-Newtonian expressions up to 5PN order for the orbital angular
-        momentum of non-spinning circular binaries. Includes 4PN and 5PN terms
-        calibrated to numerical relativity through pseudo-PN parameters.
-        
-        The calculation proceeds in two steps:
-        1. Compute standard PN expansion coefficients (1PN-3PN)
-        2. Add pseudo-PN terms (4PN-5PN) calibrated to NR simulations
-        
-        References:
-        Alexandre Le Tiec, Luc Blanchet, and Bernard F. Whiting
-        - Eq. (2.36) of https://arxiv.org/pdf/1111.5378.pdf (standard PN terms)
-        - Table II of https://arxiv.org/pdf/1111.5378.pdf (pseudo-PN parameters)
-        - Eqs. (4.24a, 4.24b) of https://arxiv.org/pdf/1111.5378.pdf (energy coefficients)
-        - Eqs. (2.49a, 2.49b) of https://arxiv.org/pdf/1111.5378.pdf (angular momentum coefficients)
-        
-        Returns:
-            [float]: Initial orbital angular momentum magnitude in units of M^2.
-        """
-        x = self._x0
-        nu = self._nu
-
-        # Standard PN terms (1PN-3PN)
-        # Eq. (2.36) of https://arxiv.org/pdf/1111.5378.pdf
-        term_1 = (3/2 + nu/6) * x
-        term_2 = (27/8 - 19*nu/8 + nu**2/24) * x**2
-        term_3 = ((135/16 + (-6889/144 + 41*np.pi**2/24)*nu + 
-                  31*nu**2/24 + 7*nu**3/1296) * x**3)
-        
-        # Pseudo-PN terms (4PN-5PN) calibrated to NR
-        # Table II of https://arxiv.org/pdf/1111.5378.pdf
-        gamma4 = 53.432
+        # 5PN (NR-calibrated pseudo-PN), Table II and Eq. (4.24b) of arXiv:1111.5378
         gamma5 = -37.72
-        
-        # Convert energy coefficients to angular momentum coefficients
-        # Eqs. (4.24a, 4.24b) of https://arxiv.org/pdf/1111.5378.pdf
-        e4 = 7*gamma4/3 + 28037/960
-        e5 = 3*gamma5 + 9359293/161280
-        
-        # Angular momentum coefficients at 4PN and 5PN
-        # Eqs. (2.49a, 2.49b) of https://arxiv.org/pdf/1111.5378.pdf
-        j4 = -(5/7)*e4 + 64/35
-        j5 = -(2/3)*e5 - 4988/945 - 656*nu/135
-        
-        # 4PN and 5PN terms
-        term_4 = (2835/128 + nu*j4) * x**4
-        term_5 = ((15309/256 + nu*j5 + (9976/105 + 1312*nu/15)*nu*np.log(x)) * x**5)
-        
-        return (nu / x**0.5) * (1 + term_1 + term_2 + term_3 + term_4 + term_5)
+        e5coef = 3 * gamma5 + 9359293/161280
+        e5 = (45927/512 + nu * e5coef + (4988/35 - 656 * nu / 5) * nu * np.log(x))
 
-    
-    def _L0_from_PN_nonspinning_eccentric(self):
+        return -0.5 * x * (e4 * x**4 + e5 * x**5)
+
+    # ------------------------------------------------------------------
+    # Angular momentum
+    # ------------------------------------------------------------------
+    def _L0_from_PN(self):
         """
-        Compute initial orbital angular momentum for non-spinning eccentric binaries.
-        
-        Uses 3PN post-Newtonian expressions with eccentricity corrections for
-        non-spinning eccentric binaries. The calculation includes terms up to e^6
-        in the eccentricity expansion at each PN order.
-        
-        The angular momentum is computed as j = L/(μ√(GMa)), where μ is the reduced
-        mass, M is the total mass, and a is the semi-major axis. Each PN order includes
-        corrections for both the PN parameter x and eccentricity e_t.
-        
+        Compute the initial orbital angular momentum L_initial.
+
+        Combines the orbit-averaged 3PN angular momentum (eccentric, aligned spin)
+        with the analytic 4PN and NR-calibrated 5PN non-spinning circular terms.
+        Returns L_initial = nu * Lhat, where Lhat = L/mu is the angular momentum per
+        reduced mass.
+
         References:
-        - Eq. (6.1b) of https://arxiv.org/pdf/0908.3854.pdf (angular momentum definition)
-        - Eq. (6.5b) of https://arxiv.org/pdf/0908.3854.pdf (3PN eccentric expansion)
-        
+            - SEOBNRv5EHM ``Leob`` (arXiv:2412.12823) for the 3PN base.
+            - arXiv:2303.18143 ``LS0`` and arXiv:1111.5378 for the 4PN/5PN terms.
+
         Returns:
             [float]: Initial orbital angular momentum magnitude in units of M^2.
         """
+        Lhat = (self._angular_momentum_hat_3PN()
+                + self._angular_momentum_hat_nonspinning_4PN5PN())
+        return self._nu * Lhat
+
+    def _angular_momentum_hat_3PN(self):
+        """
+        Orbit-averaged angular momentum per reduced mass, Lhat = L/mu, to 3PN.
+
+        Translation of the conservative part of the SEOBNRv5EHM ``Leob`` expression
+        for eccentric orbits and aligned spins, with black-hole spin-induced
+        quadrupole constants (kappa = 1).
+
+        See ``Leob`` (Eq. block "Angular momentum") of arXiv:2412.12823.
+
+        Returns:
+            [float]: Angular momentum per reduced mass.
+        """
         x = self._x0
         nu = self._nu
+        e = self.e_ref
+        delta, chiS, chiA = self._spin_combinations()
+        om = 1.0 - e**2
+        sq = np.sqrt(om)
 
-        # Use v = nu for symmetric mass ratio (as commonly done in PN expansions)
-        v = nu
-        e_t = self.ecc_input
-        
-        # Overall factor (1 - e_t²)
-        prefactor = (1 - e_t**2)
-        
-        # Newtonian term
-        term_0 = 1
-        
-        # 1PN term with eccentricity corrections up to e^2
-        term_1 = (x / (1 - e_t**2) * 
-                 (9/4 + 1/4 * v + 
-                  e_t**2 * (-17/4 + 7/4 * v)))
-        
-        # 2PN term with eccentricity corrections up to e^4
-        # Includes tidal deformation term √(1 - e_t²)
-        term_2 = (x**2 / (1 - e_t**2)**2 * 
-                 (27/8 - 19/8 * v + 1/24 * v**2 +
-                  e_t**2 * (-1/4 + 53/12 * v - 5/4 * v**2) +
-                  e_t**4 * (75/8 - 277/24 * v + 29/24 * v**2) +
-                  np.sqrt(1 - e_t**2) * e_t**2 * (-15 + 6 * v)))
-        
-        # 3PN term with eccentricity corrections up to e^6
-        # Most complex term with multiple eccentricity-dependent contributions
-        term_3 = (x**3 / (1 - e_t**2)**3 * 
-                 (-747/64 + (-5797/192 + 41/32 * np.pi**2) * v + 167/96 * v**2 - 1/192 * v**3 +
-                  e_t**2 * (5281/64 + (-8955/64 + 39/32 * np.pi**2) * v + 1751/96 * v**2 + 67/192 * v**3) +
-                  e_t**4 * (1023/64 - 3701/64 * v + 947/32 * v**2 - 131/192 * v**3) +
-                  e_t**6 * (-757/64 + 7381/192 * v - 1207/96 * v**2 + 65/192 * v**3) +
-                  np.sqrt(1 - e_t**2) * (45/4 - 13/4 * v - 1/2 * v**2 +
-                                        e_t**2 * (-505/4 + (2227/12 - 41/32 * np.pi**2) * v - 47/2 * v**2) +
-                                        e_t**4 * (55 - 40 * v + 3 * v**2))))
-        
-        # Dimensionless angular momentum parameter j
-        j = prefactor * (term_0 + term_1 + term_2 + term_3)
-        
-        # Convert to angular momentum L = j * ν * M² / √x
-        # Using the relation between j and L from PN theory
-        E0 = self._E0_from_PN_nonspinning_eccentric()
-        
-        return np.sqrt(nu * j / (2*E0))
+        # non-spinning: 0PN, 1PN, 2PN, 3PN
+        L = sq / np.sqrt(x)
+        L += (np.sqrt(x) * (9 - e**2 * (-9 + nu) + nu)) / (6 * sq)
+        L += (x**1.5 * (141 - 81 * nu + nu**2 - 2 * e**2 * nu * (19 + nu)
+                        + om**1.5 * (-60 + 24 * nu)
+                        + e**4 * (-3 + 11 * nu + nu**2))) / (24 * om**1.5)
+        L += (x**2.5 * (100440 + 54 * (-12604 + 369 * np.pi**2) * nu + 32400 * nu**2 + 56 * nu**3
+                        + 3 * e**2 * (-7992 + 9 * (-23512 + 861 * np.pi**2) * nu + 6144 * nu**2 - 56 * nu**3)
+                        + 24 * e**4 * (-1431 + 1521 * nu - 204 * nu**2 + 7 * nu**3)
+                        - 8 * e**6 * (837 + 621 * nu + 72 * nu**2 + 7 * nu**3)
+                        - 18 * om**1.5 * (720 + (-10256 + 123 * np.pi**2) * nu + 1056 * nu**2
+                                          + 48 * e**2 * (-75 + 31 * nu + 8 * nu**2)))) / (10368 * om**2.5)
+
+        # spin-orbit: 1.5PN
+        L += -((5 + 3 * e**2) * x * (2 * delta * chiA + (2 - nu) * chiS)) / (3 * om)
+        # spin-spin: 2PN
+        L += (x**1.5 * (-(2 + 3 * e**2) * (-1 + 4 * nu) * chiA**2
+                        + 2 * (2 + 3 * e**2) * delta * chiA * chiS
+                        + (2 + 3 * e**2) * chiS**2)) / (2 * om**1.5)
+        # spin-orbit: 2.5PN
+        L += (x**2 * (delta * (-1584 + 626 * nu + 1063 * e**2 * nu + 3 * e**4 * (144 + 49 * nu)) * chiA
+                      + (e**2 * (3133 - 410 * nu) * nu + e**4 * (432 + 201 * nu - 114 * nu**2)
+                         - 2 * (792 - 1231 * nu + 62 * nu**2)) * chiS
+                      + om**1.5 * (-192 * delta * (-3 + nu) * chiA
+                                   + 96 * (6 - 8 * nu + nu**2) * chiS))) / (144 * om**2)
+        # spin-spin: 3PN
+        L += -(x**2.5 * ((27 * e**4 * (9 - 37 * nu + 4 * nu**2) - 3 * e**2 * (-67 + 237 * nu + 40 * nu**2)
+                          - 4 * (59 - 260 * nu + 42 * nu**2)) * chiA**2
+                         + 2 * delta * (e**4 * (243 - 99 * nu) + 3 * e**2 * (67 + 77 * nu)
+                                        + 4 * (-59 + 85 * nu)) * chiA * chiS
+                         + (e**2 * (201 + 369 * nu - 132 * nu**2) + 9 * e**4 * (27 - 19 * nu + 4 * nu**2)
+                            - 4 * (59 - 146 * nu + 44 * nu**2)) * chiS**2
+                         + om**1.5 * (12 * (11 - 46 * nu + 6 * nu**2) * chiA**2
+                                      + 24 * delta * (11 - 9 * nu) * chiA * chiS
+                                      + 12 * (11 - 16 * nu + 4 * nu**2) * chiS**2))) / (36 * om**2.5)
+        return L
+
+    def _angular_momentum_hat_nonspinning_4PN5PN(self):
+        """
+        Analytic 4PN and NR-calibrated 5PN non-spinning circular terms of the
+        angular momentum per reduced mass, beyond the 3PN base.
+
+        The 4PN coefficient is the exact analytic term (arXiv:2303.18143 ``LS0``),
+        the 5PN term is the NR-calibrated pseudo-PN coefficient of arXiv:1111.5378
+        (Table II and Eqs. (2.49)). Returns 0 for eccentric orbits.
+
+        Returns:
+            [float]: 4PN+5PN non-spinning circular contribution to L/mu.
+        """
+        if self.e_ref != 0.0:
+            return 0.0
+        x = self._x0
+        nu = self._nu
+        gamma = np.euler_gamma
+        log2 = np.log(2.0)
+
+        # 4PN (analytic), LS0 of arXiv:2303.18143
+        l4 = (2835/128
+              + (356035/3456 - 2255/576 * np.pi**2) * nu**2
+              - 215/1728 * nu**3 - 55/31104 * nu**4
+              + nu * (98869/5760 - 128/3 * gamma - 6455/1536 * np.pi**2
+                      - 256/3 * log2 - 128/3 * 0.5 * np.log(x)))
+
+        # 5PN (NR-calibrated pseudo-PN), Table II and Eqs. (4.24b), (2.49b) of arXiv:1111.5378
+        gamma5 = -37.72
+        e5coef = 3 * gamma5 + 9359293/161280
+        j5 = -(2/3) * e5coef - 4988/945 - 656 * nu / 135
+        l5 = (15309/256 + nu * j5 + (9976/105 + 1312 * nu / 15) * nu * np.log(x))
+
+        return (1 / np.sqrt(x)) * (l4 * x**4 + l5 * x**5)
