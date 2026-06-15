@@ -1,8 +1,8 @@
 Changelog
 =========
 
-v0.4.0 (dev)
-------------
+v0.4.0
+------
 
 - Added orbit-averaged frequency for robust PN initial conditions with
   eccentric waveforms
