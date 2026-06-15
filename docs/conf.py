@@ -77,23 +77,15 @@ intersphinx_mapping = {
 
 # -- HTML output options -----------------------------------------------------
 
-html_theme = "pydata_sphinx_theme"
+html_theme = "sphinx_rtd_theme"
 
 html_theme_options = {
-    "github_url": "https://github.com/tousifislam/gw_remnant",
-    "icon_links": [
-        {
-            "name": "PyPI",
-            "url": "https://pypi.org/project/gw-remnant/",
-            "icon": "fa-solid fa-box",
-        },
-    ],
-    "show_toc_level": 2,
-    "navigation_with_keys": False,
+    "navigation_depth": 4,
+    "collapse_navigation": False,
+    "sticky_navigation": True,
 }
 
 html_static_path = ["_static"]
-html_css_files = ["custom.css"]
 html_title = "gw_remnant"
 
 # -- Inheritance diagram options ---------------------------------------------

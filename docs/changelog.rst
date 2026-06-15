@@ -1,6 +1,22 @@
 Changelog
 =========
 
+v0.4.0 (dev)
+------------
+
+- Added orbit-averaged frequency for robust PN initial conditions with
+  eccentric waveforms
+- Added NRSur7dq4 waveform generator and remnant helpers (final spin and
+  kick vectors)
+- Added ``pyseobnr`` as optional dependency (``pip install gw_remnant[eob]``)
+- Added junk radiation warning printed on construction and unphysical-spin
+  warning when ``|chi_f| > 1``
+- Added center-of-mass trajectory calculator (``TrajectoryCalculator``,
+  ``plot_trajectory``)
+- Added seven tutorial notebooks covering surrogate, SXS, Maya, and pySEOBNR
+  waveforms
+- Removed old example notebooks
+
 v0.3.0
 ------
 

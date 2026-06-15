@@ -1,6 +1,10 @@
 gw_remnant
 ==========
 
+.. image:: ../logo.png
+   :align: center
+   :width: 400px
+
 **Remnant black hole properties from gravitational waveforms**
 
 ``gw_remnant`` is a Python package for extracting remnant mass, spin, peak
@@ -50,6 +54,7 @@ quantities and reports the final remnant properties.
    :caption: About
 
    citation
+   contributing
    changelog
 
 Indices and tables
