@@ -245,9 +245,10 @@ class GWPlotter(PeakLuminosityCalculator, LinearMomentumCalculator,
         Plot the center-of-mass trajectory of the binary.
 
         Creates a two-panel figure:
+
         - Left: the center-of-mass path projected onto the orbital (x-y) plane,
-          x(t) = \\int v(t) dt, with the start and final (remnant) points marked.
-        - Right: the displacement magnitude |x(t)| as a function of time, split
+          with the start and final (remnant) points marked.
+        - Right: the displacement magnitude as a function of time, split
           into pre-merger (t <= -500M) and post-merger (t > -500M) regions.
 
         Positions are in units of total mass M (geometric units, G=c=1).
